@@ -1140,7 +1140,10 @@ void Surface::ComputeBumpImg(std::vector<cv::Point3d >& blob) {
 
 		}
 
-		else cout<<"proj pas possible"<<endl;
+		else {
+		  //cout<<"proj pas possible"<<endl;
+		}
+		  
 
 	}
 
