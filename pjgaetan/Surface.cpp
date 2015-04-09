@@ -57,12 +57,27 @@ double dist_2d(const double * A, const double *  B){
 
 
 void normalize(double A[3]) {
-	double val = sqrt(A[0]*A[0] + A[1]*A[1] + A[2]*A[2]);
-	if (val > 0.0) { 
-		A[0] = A[0]/val;
-		A[1] = A[1]/val;
-		A[2] = A[2]/val;
-	}
+  double x,y,z,val,inval;
+  x=A[0];
+  y=A[1];
+  z=A[2];
+  puts("__LINE__");
+  val = sqrt(x*x + y*y + z*z);
+  printf("x=%lf, y=%lf, z=%lf, val=%lf\n",x,y,z,val);
+  puts("__LINE__");
+  if (val > 0.0) { 
+    inval = 1/val;
+    
+    puts("__LINE__");
+    A[0] = x*inval;
+    puts("__LINE__");
+    A[1] = y*inval;
+    puts("__LINE__");
+    A[2] = z*val;
+    puts("__LINE__");
+  }
+
+  printf("x=%lf, y=%lf, z=%lf, val=%lf\n",x,y,z,val);
 }
 
 
@@ -173,13 +188,16 @@ void Surface::Proj3Dpts(){
   
   if(control_size>3){
 
+    puts("Normalize e0");
     double *e0 = diff(GetCtrls(2), GetCtrls(1));
     normalize(e0);
+    puts("Normalize e1");
     double *e1 = diff(GetCtrls(0), GetCtrls(1));
     normalize(e1);
 
     
     for(int i = 0 ; i<control_size ; i++){
+      printf("%d ", i); fflush(stdout);
       AddCtrlIdx( \
 	Point2D( \
 	  double(_k)*prod_scal(e0, GetCtrls(i)), \
@@ -187,6 +205,7 @@ void Surface::Proj3Dpts(){
 	) \
       );
     }
+    printf("\nProjection done\n");
   }
 }
 

@@ -471,6 +471,7 @@ int main(int argc, char *argv[]) {
   glutMotionFunc(mouseMove);
 
   puts("Debug: Entering GLUT main loop");
+  fprintf(stderr,"totally not an error\n");
   glutMainLoop();
 
   return EXIT_SUCCESS;
