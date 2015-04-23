@@ -68,8 +68,8 @@ typedef K::Point_2 Point2D;
 using namespace std;
 
 
-void cross_3d(double* res, double *A, double *B);
-double cross_2d(double res, double *A, double *B);
+void cross_3d(double * res, const double * A, const double * B);
+double cross_2d(double res, const double * A, const double * B);
 void base_2d(const double * V1,  const double * V2, const double * V3, double V2toB[2]) ;
 void base_3d(const double * V1, const double * V2, const double * V3, double V2toB[3]);
 

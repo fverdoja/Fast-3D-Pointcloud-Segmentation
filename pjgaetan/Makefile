@@ -20,7 +20,7 @@ G2O_LIB = -L/home/gato/g2o/trunk/lib/ -lg2o_core -lg2o_stuff -lg2o_solver_cspars
 LIBS = -lGL -lGLU -lcudart -lcuda -lboost_system -lboost_timer -lglut -lGLEW -L/usr/lib64 -lopencv_core -lopencv_gpu -lopencv_highgui -lopencv_imgproc -lcxsparse $(G2O_LIB) -lCGAL -lgmp
 
 #compiler arguments
-CC_FLAGS = $(INCLUDES) -std=c++11 --verbose
+CC_FLAGS = $(INCLUDES) -std=c++11 --verbose -O3
 
 #linker arguments
 LD_FLAGS = $(INCLUDES) $(LIBS)
@@ -47,12 +47,10 @@ $(EXEC): $(OBJ)
 #          (2) main.cpp kernel.cu -> main.o kernel.o //good! Make happily makes!! :)
 
 %.cpp.o: %.cpp
-	$(CC) -c -march=native $(CC_FLAGS) $< -o $@ -g 
-#-ffast-math
+	$(CC) -c -march=native $(CC_FLAGS) $< -o $@ -g -ffast-math
 
 %.cu.o: %.cu
-	$(NVCC) -c -arch=sm_30 $(CC_FLAGS) $< -o $@ 
-#-use_fast_math --prec-sqrt=false
+	$(NVCC) -c -arch=sm_30 $(CC_FLAGS) $< -o $@ -use_fast_math --prec-sqrt=false
 
 ## To remove generated files
 .PHONY: clean

@@ -13,12 +13,14 @@ void cross(double res[3], const double A[3], const double B[3]) {
 	res[0] =   A[1]*B[2] - A[2]*B[1];
 	res[1] = - A[0]*B[2] + A[2]*B[0];
 	res[2] =   A[0]*B[1] - A[1]*B[0];
+	return;
 }
 
 void cross_3d(double res[3], const double A[3], const double B[3]) {
 	res[0] =   A[1]*B[2] - A[2]*B[1];
 	res[1] = - A[0]*B[2] + A[2]*B[0];
 	res[2] =   A[0]*B[1] - A[1]*B[0];
+	return;
 }
 
 double cross_2d(double res, const double A[2], const double B[2]) {
@@ -30,11 +32,13 @@ void diff(double* res, const double* A, const double*  B) {
 	res[0] = A[0]-B[0];
 	res[1] = A[1]-B[1];
 	res[2] = A[2]-B[2];
+	return;
 }
 
 void diff(double* res,const int A[2], const int B[2]) {
 	res[0] = double(A[0]-B[0]);
 	res[1] = double(A[1]-B[1]);
+	return;
 }
 
 //double dist_3d(double A[3], double B[3]){
@@ -187,7 +191,7 @@ void Surface::Proj3Dpts(){
     normalize(e0);
     cout << "e0: " << e0[0] << " " << e0[1] << " " << e0[2] << endl;
     double e1[3];
-    diff(e0,GetCtrls(0), GetCtrls(1));
+    diff(e1,GetCtrls(0), GetCtrls(1));
     normalize(e1);
     cout << "e1: " << e1[0] << " " << e1[1] << " " << e1[2] << endl;
     
@@ -591,9 +595,7 @@ void Surface::g2omain()
 	if(fichier){
 	fichier << "high " << idx[0] <<"-"<< idx[1]<<"-"<< idx[2] <<" :   m : "<<mhigh<<" ; r : "<<rhigh<<" ; f : "<<fhigh<<endl; 
 	}
-
  }
-
 
 
   //displaying areas :
@@ -1371,6 +1373,7 @@ bool Surface::GetDistAndIdx(cv::Point3d pt, double& distProj, int idx[2], int& n
 		return false;
 	}
 
+	return false; //default
 }
 
 
@@ -1410,7 +1413,6 @@ void Surface::DrawRecImg(){
 				_RecImg[i][j][1] = pt[1] + _BumpImg[i][j] * _Equations[_ImgIndx[i][j]]._normal[1];
 				_RecImg[i][j][2] = pt[2] + _BumpImg[i][j] * _Equations[_ImgIndx[i][j]]._normal[2];
 				delete pt;
-
 			}
 		}
 	}	
