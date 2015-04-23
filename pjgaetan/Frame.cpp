@@ -534,32 +534,32 @@ void SegmFrame::Segment() {
 
   /****** Compute edges from the Normal image **********/
   //	 Get edges from the T channel
-  puts("Computing T edges... ");
+  puts("Computing edges (Canny filter)");
     gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 0); // On recupere que les composante Norm de la chnl 0
     d_img.download(srcT); //copy d_img to device in srcT
     
     //cv::imwrite("normch0.png", tmp);
-    puts("Canny...");
+
 //    cv::blur( srcT, srcT, cv::Size(3,3) );
     cv::Canny(srcT, edgeT, 120.0, 30.0, kern_size);
     //edgesR.download(tmp);
 
-  puts("Computing U edges... ");
+
     gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 1);
     d_img.download(srcU);// 
     
     //cv::imwrite("normch1.png", tmp);
-    puts("Canny...");
+
 //    cv::blur( srcU, srcU, cv::Size(3,3) );
     cv::Canny(srcU, edgeU, 120.0, 30.0, kern_size);
     //edgesG.download(tmp);
   
-  puts("Computing V edges... ");
+
     gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 2);
     d_img.download(srcV);// 
     
     //cv::imwrite("normch2.png", tmp);
-    puts("Canny...");
+
 //    cv::blur( srcV, srcV, cv::Size(3,3) );
     cv::Canny(srcV, edgeV, 120.0, 30.0, kern_size);
     //edgesB.download(tmp);
@@ -573,7 +573,7 @@ void SegmFrame::Segment() {
   cv::imwrite("CannyT.png",edge_canny);
   
   //debug
-  printf("Matrix sum (should not be 0): %lf\n",cv::sum(edge_canny)[0]);
+  //printf("Matrix sum (should not be 0): %lf\n",cv::sum(edge_canny)[0]);
 
 //  d_img.download(tmp);// ici d_img = edge of the image
  // //cv::imshow("edges", tmp);
@@ -1032,11 +1032,11 @@ void SegmFrame::Get3DCtrlPts(){
 	  double( VMap[3*(int(_ctrlsidx[i][j].x())+int(_ctrlsidx[i][j].y())*m)+2])  ) );
 	}
 
-    cout<<"nb ccontrol pts bfre "<<ctrls.size()<<endl;
+    cout<<"nb control pts before CGAL simplifyCloud:"<<ctrls.size()<<endl;
 
     simplifyCloud(ctrls, 0.06); // Use CGAL functions
 
-    cout<<"nb ccontrol pts after "<<ctrls.size()<<endl;
+    cout<<"nb control pts after CGAL simplifyCloud:"<<ctrls.size()<<endl;
 
     _ctrls[i].insert(_ctrls[i].end(), ctrls.begin(), ctrls.end());// on ajoute la liste de control pts à celle existante, initialisé dans GetBbox (car on avait deja les 4 premiers control points)
     ctrls.clear();
@@ -1073,7 +1073,7 @@ void SegmFrame::ComputeSurfs(){
 
   for(int i = 0; i< surf_n; i++){
     
-    printf("S%d ", i); fflush(stdout);
+    printf("Surface #%d\n", i); fflush(stdout);
 
 //  	 i = 1;//8 sphere // 2 chair //7 wall
     
@@ -1092,21 +1092,18 @@ void SegmFrame::ComputeSurfs(){
     puts("g2omain");
     _Surfs[i]->g2omain();
 
-    puts("while in");
     while(_Surfs[i]->findPointToDupli())
     {	
       _Surfs[i]->g2omain();
 
       if(_Surfs[i]->OverlapTest() == 0){
-	      _Surfs[i]->OptCopytoBuff();
+	_Surfs[i]->OptCopytoBuff();
       }
-      
       else{
-	      _Surfs[i]->RecoverFromBuff();
-	      break;
+	_Surfs[i]->RecoverFromBuff();
+	break;
       }
     }
-    puts("while out");
 
     _Surfs[i]->ClearOptBuff();
 
@@ -1119,17 +1116,16 @@ void SegmFrame::ComputeSurfs(){
     _Surfs[i]->ComputeImgIdx();
     _Surfs[i]->ComputeBumpImg(_blobsF[i]);
 
-    if(i==8){
-	    labelimage = "labelImg" + to_string((long double)(i)) + extension ;
-	    _Surfs[i]->DisplayLabelImg(labelimage);
-	    bumpimage = "bumpImage" + to_string((long double)(i)) + extension ;
-	    _Surfs[i]->DisplayBumpImg(bumpimage);
-    }
+//     if(i==8){
+// 	    labelimage = "labelImg" + to_string((long double)(i)) + extension ;
+// 	    _Surfs[i]->DisplayLabelImg(labelimage);
+// 	    bumpimage = "bumpImage" + to_string((long double)(i)) + extension ;
+// 	    _Surfs[i]->DisplayBumpImg(bumpimage);
+//     }
 
     _Surfs[i]->DrawRecImg();
 
-    puts("waitkey(20)");
-    cvWaitKey(20);// Just to let the time to images to display
+//    cvWaitKey(20);// Just to let the time to images to display
   }
 
 //	}

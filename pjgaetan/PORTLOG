@@ -1,8 +1,0 @@
-30/03/2015, Florian Castellane
-+Wrote Makefile
-
-31/03/2015, Florian Castellane
-
-*commented out windows library references
-*edited small errors (added brackets to type casts and so on)
-*in opencv, cv::gpu:: was moved to cv::cuda:: -- edited files accordingly

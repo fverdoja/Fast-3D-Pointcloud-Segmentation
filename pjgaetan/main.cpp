@@ -1,6 +1,6 @@
 //#include "stdafx.h" //Visual Studio specific
 #include "utilities.h"
-
+#include <boost/timer/timer.hpp>
 
 
 GLuint window;
@@ -91,8 +91,8 @@ void Init(void){
 
   glShadeModel(GL_SMOOTH);			// Enable Smooth Shading
   glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-  //glClearColor(0.0f, 0.0f, 0.0f, 0.5f);	// Black Background
-  glClearColor(1.0f, 1.0f, 1.0f, 0.5f);		// White Background
+  glClearColor(0.0f, 0.0f, 0.0f, 0.5f);	// Black Background
+  //glClearColor(1.0f, 1.0f, 1.0f, 0.5f);		// White Background
   glClearDepth(1.0f);				// Depth Buffer Setup
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -138,6 +138,8 @@ void Init(void){
 
   SetCalibrationMatrix(Calib);
 
+  boost::timer::auto_cpu_timer timer; //start timer (will stop when this function ends)
+  
   puts("Loading input frames... ");
     frame->LoadFrame("Depth1.tiff", "RGB1.tiff"); // Define the VBO (using the GPU) from the 2 input TIFF images
   
@@ -166,7 +168,7 @@ void Init(void){
     frame->InitSurfs();
     frame->ComputeSurfs();
     puts("Done!");
-  
+    
   return;
 }
 
@@ -218,7 +220,7 @@ void keyboard(unsigned char key, int x, int y) {
       //printf("angleX = %f,angleY = %f,angleZ = %f, dist = %f, center = %f\n",angleX,angleY,angleZ,dist,center);
       //printf("you pressed %c ",key);	
       //printf("mouse position : ");	
-      //printf("%d,%d\n ",x,y);	 // x de 0 à 640 (width),  y de 0 à 480 (height)
+      //printf("%d,%d\n ",x,y);	 // x de 0 ï¿½ 640 (width),  y de 0 ï¿½ 480 (height)
     break;
     
     case 027 /* esc */: exit(EXIT_SUCCESS) ; break;
@@ -403,7 +405,7 @@ void display(void) {
 
 ///////////  Test afficher une image    //////////////
 
-	  //Création et chargement de l'image
+	  //Crï¿½ation et chargement de l'image
     ImageRGBD imageRGBD1;
 	imageRGBD1.load("RGB1.tiff", "Depth1.tiff");
 
@@ -471,7 +473,6 @@ int main(int argc, char *argv[]) {
   glutMotionFunc(mouseMove);
 
   puts("Debug: Entering GLUT main loop");
-  fprintf(stderr,"totally not an error\n");
   glutMainLoop();
 
   return EXIT_SUCCESS;

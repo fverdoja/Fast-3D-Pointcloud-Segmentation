@@ -39,7 +39,10 @@
 
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Triangulation_euclidean_traits_xy_3.h>
+
+//#include <CGAL/Triangulation_euclidean_traits_xy_3.h> //DEPRECATED
+#include <CGAL/Projection_traits_xy_3.h> //use instead of deprecated
+
 #include <CGAL/Delaunay_triangulation_2.h>
 
 #include <CGAL/grid_simplify_point_set.h>
@@ -51,7 +54,10 @@
 
 // types
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Triangulation_euclidean_traits_xy_3<K> Gt;
+
+//typedef CGAL::Triangulation_euclidean_traits_xy_3<K> Gt; //DEPRECATED
+typedef CGAL::Projection_traits_xy_3<K>  Gt; //use instead of deprecated
+
 typedef CGAL::Delaunay_triangulation_2<K> Delaunay;
 typedef K::Point_3 Point3D;
 typedef K::Point_2 Point2D;
@@ -62,8 +68,8 @@ typedef K::Point_2 Point2D;
 using namespace std;
 
 
-void cross_3d(double res[3], double A[3], double B[3]);
-double cross_2d(double res, double A[2], double B[2]);
+void cross_3d(double* res, double *A, double *B);
+double cross_2d(double res, double *A, double *B);
 void base_2d(const double * V1,  const double * V2, const double * V3, double V2toB[2]) ;
 void base_3d(const double * V1, const double * V2, const double * V3, double V2toB[3]);
 
