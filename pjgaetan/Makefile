@@ -20,7 +20,7 @@ G2O_LIB = -L/home/gato/g2o/trunk/lib/ -lg2o_core -lg2o_stuff -lg2o_solver_cspars
 LIBS = -lGL -lGLU -lcudart -lcuda -lboost_system -lboost_timer -lglut -lGLEW -L/usr/lib64 -lopencv_core -lopencv_gpu -lopencv_highgui -lopencv_imgproc -lcxsparse $(G2O_LIB) -lCGAL -lgmp
 
 #compiler arguments
-CC_FLAGS = $(INCLUDES) -std=c++11 --verbose -O3
+CC_FLAGS = $(INCLUDES) -std=c++11 -O3
 
 #linker arguments
 LD_FLAGS = $(INCLUDES) $(LIBS)
@@ -31,14 +31,13 @@ EXEC = pjgaetan
 SRC_cpp = $(wildcard *.cpp)
 SRC_cu = $(wildcard *.cu)
 
-OBJ = $(SRC_cpp:.cpp=.cpp.o) $(SRC_cu:.cu=.cu.o)
+OBJ = $(SRC_cpp:.cpp=.o) $(SRC_cu:.cu=.o)
 
 ## Main target: assembler
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
-	$(CC) $(CC_FLAGS) $(LD_FLAGS) $(OBJ) -o $(EXEC) -g 
-#-ffast-math
+	$(CC) $(CC_FLAGS) $(LD_FLAGS) $(OBJ) -o $(EXEC) -ffast-math
 
 ## To obtain object files: compiler
 # warning: no .cpp file must have the same name as a .cu file, or
@@ -46,10 +45,10 @@ $(EXEC): $(OBJ)
 # example: (1) main.cpp main.cu   -> main.o main.o   //bad!  Make no understand!! :(
 #          (2) main.cpp kernel.cu -> main.o kernel.o //good! Make happily makes!! :)
 
-%.cpp.o: %.cpp
-	$(CC) -c -march=native $(CC_FLAGS) $< -o $@ -g -ffast-math
+%.o: %.cpp
+	$(CC) -c -march=native $(CC_FLAGS) $< -o $@ -ffast-math
 
-%.cu.o: %.cu
+%.o: %.cu
 	$(NVCC) -c -arch=sm_30 $(CC_FLAGS) $< -o $@ -use_fast_math --prec-sqrt=false
 
 ## To remove generated files

@@ -1,7 +1,8 @@
 //#include "stdafx.h" //Visual Studio specific
 #include "utilities.h"
 #include <boost/timer/timer.hpp>
-
+#include <cstdio>    // fileno() fgets()
+#include <unistd.h>  // isatty()
 
 GLuint window;
 
@@ -129,46 +130,8 @@ void Init(void){
   intrinsics[11] = -1.0;
   intrinsics[14] = -2.0*(Zfar*Znear)/(Zfar-Znear);
 
-
-  //////////////////////////////////
-  //Init Frame :
-  //////////////////////////////////
-
-  frame = new SegmFrame(HEIGHT, WIDTH);
-
   SetCalibrationMatrix(Calib);
-
-  boost::timer::auto_cpu_timer timer; //start timer (will stop when this function ends)
   
-  puts("Loading input frames... ");
-    frame->LoadFrame("Depth1.tiff", "RGB1.tiff"); // Define the VBO (using the GPU) from the 2 input TIFF images
-  
-  //get segmented 3D point clouds (blobs) :
-  puts("Segmenting the point cloud... ");
-    frame->Segment(); //get indexes of segmented part
-
-  puts("Getting segmented blobs... ");
-    frame->Get3DBlobs(); //get segmented 3D point clouds (blobs)
-
-  //Get control points :
-  puts("Computing PCA... ");
-    frame->ComputePCA();// give eig vector for each blobs
-
-  puts("Determining oriented Bboxes... ");
-    frame->GetBboxOriented();//get bboxs and initialise 4 first ctrl pts
-
-  puts("Finding control points from 2D depth image... ");
-    frame->Find2DCtrlPts();// get indexes of control points on the 2D depth image
-
-  puts("Finding 3D control points... ");
-    frame->Get3DCtrlPts();// get 3Dcontrol points
-
-  //Create Surfaces :
-  puts("Computing surfaces... ");
-    frame->InitSurfs();
-    frame->ComputeSurfs();
-    puts("Done!");
-    
   return;
 }
 
@@ -421,25 +384,85 @@ void display(void) {
 
 }*/
 
+void setfilenames(void) {
+	if (isatty(fileno(stdin))) {
+	  char buffer[STR_LEN] = "";
+	  unsigned short n = 0;
+	  // We were launched from the command line.
+	  printf("Enter color image filename (extension [%s] can be omitted) [%s]\n", \
+			  FILENAME_EXT,FILENAME_COLOR);
+	  if (fgets(buffer,STR_LEN,stdin)) {
+		  n=strcspn(buffer,"\r\n"); //find first line break or carriage feed
+		  if (n==0) //user just pressed enter
+			  {} //default filename
+		  else {
+			  buffer[n]='\0'; //remove trailing line break (or carriage feed)
+			  if (strstr(buffer,".")==0) { //no filename extension
+				  strcat(buffer,FILENAME_EXT); //add extension
+			  }
+			  strncpy(FILENAME_COLOR,buffer,STR_LEN); //save string
+		  }
+	  }
+	  else {							//omg
+		  puts("fgets read failure"); 	//it's a lion
+		  exit(EXIT_FAILURE);			//get in the car!
+	  }
+
+	  printf("Enter depth image filename (extension [%s] can be omitted) [%s]\n",\
+			  FILENAME_EXT,FILENAME_DEPTH);
+	  if (fgets(buffer,STR_LEN,stdin)) {
+		  n=strcspn(buffer,"\r\n"); //find first line break or carriage feed
+		  if (n==0) //user just pressed enter
+			  {} //default filename
+		  else {
+			  buffer[n]='\0'; //remove trailing line break (or carriage feed)
+			  if (strstr(buffer,".")==0) { //no filename extension
+				  strcat(buffer,FILENAME_EXT); //add extension
+			  }
+			  strncpy(FILENAME_DEPTH,buffer,STR_LEN); //save string
+		  }
+	  }
+	  else {							//omg
+		  puts("fgets read failure"); 	//it's a lion
+		  exit(EXIT_FAILURE);			//get in the car!
+	  }
+	}
+	else {
+	  // We were launched from inside the desktop
+	  // do not ask for filename, run with default settings
+	}
+	printf("Input color image : %s\n",FILENAME_COLOR);
+	printf("Input depth image : %s\n",FILENAME_DEPTH);
+	return;
+}
+
+void checkgpu(void) {
+  //check for available GPUs
+  {
+	int n_cuda=gpu::getCudaEnabledDeviceCount();
+	printf("Notice: %d CUDA GPUs detected.\n",n_cuda);
+	if(!n_cuda) {
+	  puts("Error: No CUDA GPU detected! Exiting");
+	  exit(EXIT_FAILURE);
+	}
+	else { //print GPU 0's name
+	  gpu::DeviceInfo info = gpu::DeviceInfo(0);
+	  puts("Selected GPU #0:");
+	  puts(info.name().c_str());
+	}
+  }
+	return;
+}
+
 
 int main(int argc, char *argv[]) {
   puts("Debug: Hello World!");
   
-  //check for available GPUs
-  {
-    int n_cuda=gpu::getCudaEnabledDeviceCount();
-    printf("Notice: %d CUDA GPUs detected.\n",n_cuda);
-    if(!n_cuda) {
-      puts("Error: No CUDA GPU detected! Exiting");
-      return EXIT_FAILURE;
-    }
-    else { //print GPU 0's name
-      gpu::DeviceInfo info = gpu::DeviceInfo(0);
-      puts("Selected GPU #0:");
-      puts(info.name().c_str());
-    }
-  }
+  checkgpu();
   
+  //set input filenames
+  setfilenames();
+
 ///////// init GLUT and create Window
   glutInit(&argc, argv) ;
 
@@ -447,12 +470,51 @@ int main(int argc, char *argv[]) {
 
   glutInitWindowSize(WIDTH, HEIGHT);
 
-  window = glutCreateWindow("test") ;
+  window = glutCreateWindow("Display") ;
 
   puts("Debug: GLUT initialized");
   
   Init();
 
+  //////////////////////////////////
+  //Init Frame :
+  //////////////////////////////////
+
+  frame = new SegmFrame(HEIGHT, WIDTH);
+
+  boost::timer::auto_cpu_timer timer; //start timer
+
+  puts("Loading input frames... ");
+    frame->LoadFrame(FILENAME_DEPTH, FILENAME_COLOR); // Define the VBO (using the GPU) from the 2 input TIFF images
+
+  //get segmented 3D point clouds (blobs) :
+  puts("Segmenting the point cloud... ");
+    frame->Segment(); //get indexes of segmented part
+
+  puts("Getting segmented blobs... ");
+    frame->Get3DBlobs(); //get segmented 3D point clouds (blobs)
+
+  //Get control points :
+  puts("Computing PCA... ");
+    frame->ComputePCA();// give eig vector for each blobs
+
+  puts("Determining oriented Bboxes... ");
+    frame->GetBboxOriented();//get bboxs and initialise 4 first ctrl pts
+
+  puts("Finding control points from 2D depth image... ");
+    frame->Find2DCtrlPts();// get indexes of control points on the 2D depth image
+
+  puts("Finding 3D control points... ");
+    frame->Get3DCtrlPts();// get 3Dcontrol points
+
+  //Create Surfaces :
+  puts("Computing surfaces... ");
+    frame->InitSurfs();
+    frame->ComputeSurfs();
+    puts("Done!");
+
+  timer.stop();		//stop timer
+  timer.report();	//print timing
 
   /* callback for mouse drags */
   //glutMotionFunc(mousedrag);

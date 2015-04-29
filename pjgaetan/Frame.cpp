@@ -131,7 +131,7 @@ void InputFrame::Draw(bool color) {
   glBindBuffer(GL_ARRAY_BUFFER, _frame_buf);
 
   glVertexPointer(3, GL_FLOAT, 0, BUFFER_OFFSET(0));
-  glNormalPointer(GL_FLOAT, 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)));// on vient stoquer les normales à la suite du buffer
+  glNormalPointer(GL_FLOAT, 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)));// on vient stoquer les normales ï¿½ la suite du buffer
   if (color)
     glColorPointer(3, GL_FLOAT , 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)+_n*_m*3*sizeof(float)));
 
@@ -191,7 +191,7 @@ void OffLineFrame::LoadFrame(string filename_depth, string filename_color) {
   this->_color_dev_test.upload(color_test); //on charge l'image dans le GPU
   color_test.release();// On libere l'image du CPU
   
-  checkCudaErrors( cudaGraphicsMapResources (1, _Resources_t) );// On reserve l'utilisation du GPU à cuda
+  checkCudaErrors( cudaGraphicsMapResources (1, _Resources_t) );// On reserve l'utilisation du GPU ï¿½ cuda
   // Copy RGBD data 
   gpu_cpy_char3(_color_dev_test, _RGB_dev, _n,  _m);// On met la matrice color dans le VBO _RGB_dev
   // Compute Vertex position
@@ -596,7 +596,7 @@ void SegmFrame::Segment() {
   d_edge_canny.upload(edge_canny);
   
   gpu_Thresh(d_edge_thresh, d_edge_canny, 20, getNMap(), getN(), getM());// Segmentation/Binarisation
-  d_edge_thresh.download(edge_thresh);// img2 = parties segmentees (inverse binarisé de d_img)
+  d_edge_thresh.download(edge_thresh);// img2 = parties segmentees (inverse binarisï¿½ de d_img)
   //threshold(edge_canny,edge_thresh,20,1,THRESH_BINARY); //cpu version, does not work
 
   //cv::imshow("edges", tmp);
@@ -619,9 +619,9 @@ void SegmFrame::Segment() {
   cv::Mat output = cv::Mat::zeros(dilation_dst.size(), CV_8UC1);
 
   cv::Mat binary;
-  std::vector < std::vector<cv::Point2i > > blobs;// tableau de tableaux de point (x,y), blobs rassemble tous les points connectés par label...
+  std::vector < std::vector<cv::Point2i > > blobs;// tableau de tableaux de point (x,y), blobs rassemble tous les points connectï¿½s par label...
 
-  cv::threshold(dilation_dst, binary, 0.0, 1.0, cv::THRESH_BINARY);//sert juste à ramener l'image dilation entre 0 et 1 au lieux de 0 et 255
+  cv::threshold(dilation_dst, binary, 0.0, 1.0, cv::THRESH_BINARY);//sert juste ï¿½ ramener l'image dilation entre 0 et 1 au lieux de 0 et 255
 
   //cv::imshow("binary", binary);
 
@@ -1038,7 +1038,7 @@ void SegmFrame::Get3DCtrlPts(){
 
     cout<<"nb control pts after CGAL simplifyCloud:"<<ctrls.size()<<endl;
 
-    _ctrls[i].insert(_ctrls[i].end(), ctrls.begin(), ctrls.end());// on ajoute la liste de control pts à celle existante, initialisé dans GetBbox (car on avait deja les 4 premiers control points)
+    _ctrls[i].insert(_ctrls[i].end(), ctrls.begin(), ctrls.end());// on ajoute la liste de control pts ï¿½ celle existante, initialisï¿½ dans GetBbox (car on avait deja les 4 premiers control points)
     ctrls.clear();
   }
 
@@ -1056,7 +1056,7 @@ printf("Getting surfaces for %d blobs\n", blob_n);
 
   for(int i=0; i< blob_n ; i++){
     Surface *Surf;
-    Surf = new Surface(300);
+    Surf = new Surface(300); //param: resolution "k"
     _Surfs.push_back(Surf);
 
   }

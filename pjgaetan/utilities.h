@@ -51,10 +51,12 @@ using namespace cv;
 #define WIDTH 640
 #define HEIGHT 480
 
-#define MIN_SIZE_PLAN 2000
+#define MIN_SIZE_PLAN 1000 //min nb of points in a blob
 
 
 #define DISPLAY_FRAME_IN true
+
+
 
 //#include "Surface.h"
 #include "Frame.h"
@@ -63,6 +65,10 @@ using namespace cv;
 #include "Kernel.cuh"
 #include <limits>
 
+#define STR_LEN 256
+static char FILENAME_DEPTH[STR_LEN] = "Depth1.tiff"; //default image name
+static char FILENAME_COLOR[STR_LEN] = "RGB1.tiff";
+static char FILENAME_EXT[] = ".tiff";
 
 void FindBlobs(const cv::Mat &binary, std::vector < std::vector<cv::Point2i> > &blobs);
 
