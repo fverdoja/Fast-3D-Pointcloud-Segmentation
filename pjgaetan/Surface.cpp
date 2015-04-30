@@ -240,7 +240,7 @@ void Surface::GetEquations() {
   // sanity checks
   printf("Inserted %d points into the triangulation\n", npt);
   printf("Triangulation has %lu faces and %lu vertices\n",dt.number_of_faces(),dt.number_of_vertices());
-  dt.is_valid() ? puts("Valid triangulation") : puts("Invalid triangulation");
+  //dt.is_valid() ? puts("Valid triangulation") : puts("Invalid triangulation");
   this->_ControlsIdx.begin() == this->_ControlsIdx.end() ? puts("Empty control pt set") : puts("Nonempty control pt set");
   dt.finite_faces_begin() == dt.finite_faces_end() ? puts("Empty triangulation") : puts("Nonempty triangulation");
 

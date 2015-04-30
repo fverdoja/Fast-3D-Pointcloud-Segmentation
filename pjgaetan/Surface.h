@@ -30,13 +30,9 @@
 //#include <opencv2/gpu/gpu.hpp>
 #include <opencv2/nonfree/gpu.hpp>
 
-
 #define MeasType Eigen::Vector2d
 
-
 #include "g2o_tutorial_slam2d_api.h"
-
-
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 
@@ -63,7 +59,7 @@ typedef K::Point_3 Point3D;
 typedef K::Point_2 Point2D;
 
 
-#define EPSILON 1e-10
+#define EPSILON 1e-10 //TODO: conflict with a CUDA variable: cudaTypes.cuh:51:0: warning: "EPSILON" redefined
 
 using namespace std;
 
@@ -138,7 +134,16 @@ public:
 
 public:
 
-	Surface(int k): _k(k) { };
+	Surface(int k): _k(k) {
+		_m = 0;
+		_n = 0;
+		_numLastInxDupli = 0;
+		_ImgIndx = NULL;
+		_BumpImg = NULL;
+		_VtxImg = NULL;
+		_RecImg = NULL;
+		_RGBImg = NULL;
+	};
 	~Surface() {};
 
 	inline int getN() {return _n;}
@@ -187,7 +192,6 @@ public:
 	void DisplaySurf();
 	void DisplayRecImg(int color);
 	void DisplaySurfsPlus(int switch1);
-
 };
 
 

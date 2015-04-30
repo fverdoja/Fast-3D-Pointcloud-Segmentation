@@ -1116,16 +1116,16 @@ void SegmFrame::ComputeSurfs(){
     _Surfs[i]->ComputeImgIdx();
     _Surfs[i]->ComputeBumpImg(_blobsF[i]);
 
-//     if(i==8){
-// 	    labelimage = "labelImg" + to_string((long double)(i)) + extension ;
-// 	    _Surfs[i]->DisplayLabelImg(labelimage);
-// 	    bumpimage = "bumpImage" + to_string((long double)(i)) + extension ;
-// 	    _Surfs[i]->DisplayBumpImg(bumpimage);
-//     }
+     if(i==8){
+ 	    labelimage = "labelImg" + to_string(i) + extension ;
+ 	    _Surfs[i]->DisplayLabelImg(labelimage);
+ 	    bumpimage = "bumpImage" + to_string(i) + extension ;
+ 	    _Surfs[i]->DisplayBumpImg(bumpimage);
+     }
 
     _Surfs[i]->DrawRecImg();
 
-//    cvWaitKey(20);// Just to let the time to images to display
+    cvWaitKey(100);// Just to let the time to images to display
   }
 
 //	}

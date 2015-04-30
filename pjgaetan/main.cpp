@@ -46,7 +46,7 @@ float lxStrap=-1.0f,lyStrap=0.0f,lzStrap=0.0f;
 float x=0.0f, y=1.0f, z=5.0f;
  
 // the key states. These variables will be zero
-//when no key is being presses
+//when no key is being pressed
 float deltaAnglex = 0.0f;
 float deltaAngley = 0.0f;
 float deltaMove = 0;
@@ -465,9 +465,7 @@ int main(int argc, char *argv[]) {
 
 ///////// init GLUT and create Window
   glutInit(&argc, argv) ;
-
   glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
-
   glutInitWindowSize(WIDTH, HEIGHT);
 
   window = glutCreateWindow("Display") ;
@@ -496,7 +494,7 @@ int main(int argc, char *argv[]) {
 
   //Get control points :
   puts("Computing PCA... ");
-    frame->ComputePCA();// give eig vector for each blobs
+    frame->ComputePCA();// give eig vectors for each blob
 
   puts("Determining oriented Bboxes... ");
     frame->GetBboxOriented();//get bboxs and initialise 4 first ctrl pts
@@ -516,21 +514,11 @@ int main(int argc, char *argv[]) {
   timer.stop();		//stop timer
   timer.report();	//print timing
 
-  /* callback for mouse drags */
-  //glutMotionFunc(mousedrag);
-  /* callback for idle mouse movement */
-  //glutPassiveMotionFunc(mouseidle);
-  /* callback for mouse button changes */
-  //glutMouseFunc(mousebutton);
-
   glutReshapeFunc(reshape);
   glutDisplayFunc(display);
-
   glutKeyboardFunc(keyboard) ;
   glutSpecialFunc(pressKey);
   glutSpecialUpFunc(releaseKey);
-
-  // here are the two new functions
   glutMouseFunc(mouseButton);
   glutMotionFunc(mouseMove);
 

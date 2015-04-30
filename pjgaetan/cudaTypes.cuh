@@ -6,7 +6,7 @@
 //#include <Windows.h>
 //#include <Ole2.h>
 
-#include "typedefs.h" // windows' useless typedefs
+#include "typedefs.h" // windows typedefs workaround
 
 #include <cuComplex.h>
 #include <cuda_runtime.h>
@@ -48,7 +48,7 @@
 #define THREAD_SIZE THREAD_SIZE_L_X*THREAD_SIZE_L_Y
 #define STRIDE 512
 #define MAXTOLERANCE 0.2
-#define EPSILON 0.1
+#define EPSILON 0.1 //TODO conflict with EPSILON in Surface.h
 #define ALPHA 0.8 
 #define PI 3.1415926535897932384626433832795
 #define MAX_DEPTH 100.0
