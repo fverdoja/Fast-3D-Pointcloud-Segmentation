@@ -14,25 +14,48 @@
 Clustering::Clustering() {
 	set_delta_c(LAB_CIEDE00);
 	set_delta_g(NORMALS_DIFF);
-	set_lambda(0.5);
+	set_merging(MANUAL_LAMBDA);
 	set_initial_state = false;
+	init_initial_weights = false;
 }
 
-Clustering::Clustering(ColorDistance c, GeometricDistance g, float l) {
+Clustering::Clustering(ColorDistance c, GeometricDistance g,
+		MergingCriterion m) {
 	set_delta_c(c);
 	set_delta_g(g);
-	set_lambda(l);
+	set_merging(m);
 	set_initial_state = false;
+	init_initial_weights = false;
 }
 
 /*
  * IMPLEMENTATIONS OF PUBLIC METHODS OF CLASS Clustering
  */
+void Clustering::set_merging(MergingCriterion m) {
+	merging_type = m;
+	lambda = 0.5;
+	bins_num = 500;
+	init_initial_weights = false;
+}
 
 void Clustering::set_lambda(float l) {
+	if (merging_type != MANUAL_LAMBDA)
+		throw std::logic_error(
+				"Lambda can be set only if the merging criterion is set to MANUAL_LAMBDA");
 	if (l < 0 || l > 1)
 		throw std::invalid_argument("Argument outside range [0, 1]");
 	lambda = l;
+	init_initial_weights = false;
+}
+
+void Clustering::set_bins_num(short b) {
+	if (merging_type != EQUALIZATION)
+		throw std::logic_error(
+				"Bins number can be set only if the merging criterion is set to EQUALIZATION");
+	if (b < 0)
+		throw std::invalid_argument("Argument lower than 0");
+	bins_num = b;
+	init_initial_weights = false;
 }
 
 void Clustering::set_initialstate(ClusteringT segm, AdjacencyMapT adj) {
@@ -41,12 +64,16 @@ void Clustering::set_initialstate(ClusteringT segm, AdjacencyMapT adj) {
 	initial_state = init_state;
 	state = init_state;
 	set_initial_state = true;
+	init_initial_weights = false;
 }
 
 void Clustering::cluster(float threshold) {
 	if (!set_initial_state)
 		throw std::logic_error("Cannot call 'cluster' before "
 				"setting an initial state with 'set_initialstate'");
+
+	if (!init_initial_weights)
+		init_weights();
 
 	state = initial_state;
 
@@ -97,13 +124,46 @@ void Clustering::test_all() const {
 	ColorUtilities::rgb_test();
 	ColorUtilities::lab_test();
 	ColorUtilities::convert_test();
+
+//	DeltasDistribT d;
+//	for(int i = 0; i<10; i++)
+//		d.insert(i);
+//	printf("*** Mean deltas test ***\nMean = %f\n", deltas_mean(d));
 }
 
 /*
  * IMPLEMENTATIONS OF PRIVATE METHODS OF CLASS Clustering
  */
 
-float Clustering::delta(SupervoxelT::Ptr supvox1,
+float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
+		PointT centroid2) const {
+	Eigen::Vector3f N1 = norm1.getNormalVector3fMap();
+	Eigen::Vector3f C1 = centroid1.getVector3fMap();
+	Eigen::Vector3f N2 = norm2.getNormalVector3fMap();
+	Eigen::Vector3f C2 = centroid2.getVector3fMap();
+
+	Eigen::Vector3f C = C2 - C1;
+	C /= C.norm();
+
+	float N1xN2 = N1.cross(N2).norm();
+	float N1_C = std::abs(N1.dot(C));
+	float N2_C = std::abs(N2.dot(C));
+
+	float delta_g = (N1xN2 + N1_C + N2_C) / 3;
+
+//	std::cout << "c1 =\n" << C1 << "\n";
+//	std::cout << "c2 =\n" << C2 << "\n";
+//	std::cout << "C =\n" << C << "\n";
+//	std::cout << "N1_C =\n" << N1_C << "\n";
+//	std::cout << "N2_C =\n" << N2_C << "\n";
+//	std::cout <<"n1 =\n"<< N1 << "\n";
+//	std::cout <<"n2 =\n"<< N2 << "\n";
+//	std::cout <<"n1 x n2 =\n"<< N1.cross(N2) << "\n|n1 x n2| = " << N1xN2 << "\n";
+
+	return delta_g;
+}
+
+std::pair<float, float> Clustering::delta_c_g(SupervoxelT::Ptr supvox1,
 		SupervoxelT::Ptr supvox2) const {
 	float delta_c = 0;
 	float * rgb1 = ColorUtilities::mean_color(supvox1);
@@ -131,9 +191,17 @@ float Clustering::delta(SupervoxelT::Ptr supvox1,
 		delta_g = normals_diff(n1, c1, n2, c2);
 	}
 
+	std::pair<float, float> ret(delta_c, delta_g);
+	return ret;
+}
+float Clustering::delta(SupervoxelT::Ptr supvox1,
+		SupervoxelT::Ptr supvox2) const {
+
+	std::pair<float, float> deltas = delta_c_g(supvox1, supvox2);
+
 //	printf("delta_c = %f | delta_g = %f\n", delta_c, delta_g);
 
-	float delta = lambda * delta_c + (1 - lambda) * delta_g;
+	float delta = t_c(deltas.first) + t_g(deltas.second);
 	return delta;
 }
 
@@ -182,12 +250,139 @@ WeightMapT Clustering::adj2weight(ClusteringT segm,
 	AdjacencyMapT::iterator it_end = adj_map.end();
 	for (; it != it_end; ++it) {
 		WeightedPairT elem;
-		elem.first = delta(segm.at(it->first), segm.at(it->second));
+		elem.first = -1;
 		elem.second = *(it);
 		w_map.insert(elem);
 	}
 
 	return w_map;
+}
+
+void Clustering::init_weights() {
+	std::map<std::string, std::pair<float, float> > temp_deltas;
+	DeltasDistribT deltas_c;
+	DeltasDistribT deltas_g;
+	WeightMapT w_new;
+
+	WeightMapT::iterator it = initial_state.weight_map.begin();
+	WeightMapT::iterator it_end = initial_state.weight_map.end();
+	for (; it != it_end; ++it) {
+		uint32_t sup1_id = it->second.first;
+		uint32_t sup2_id = it->second.second;
+		std::stringstream ids;
+		ids << sup1_id << "-" << sup2_id;
+		SupervoxelT::Ptr sup1 = initial_state.segments.at(sup1_id);
+		SupervoxelT::Ptr sup2 = initial_state.segments.at(sup2_id);
+		std::pair<float, float> deltas = delta_c_g(sup1, sup2);
+		temp_deltas.insert(
+				std::pair<std::string, std::pair<float, float> >(ids.str(),
+						deltas));
+		deltas_c.insert(deltas.first);
+		deltas_g.insert(deltas.second);
+	}
+
+	init_merging_parameters(deltas_c, deltas_g);
+
+	it = initial_state.weight_map.begin();
+	for (; it != it_end; ++it) {
+		uint32_t sup1_id = it->second.first;
+		uint32_t sup2_id = it->second.second;
+		std::stringstream ids;
+		ids << sup1_id << "-" << sup2_id;
+		std::pair<float, float> deltas = temp_deltas.at(ids.str());
+		float delta = t_c(deltas.first) + t_g(deltas.second);
+		w_new.insert(WeightedPairT(delta, it->second));
+	}
+
+	initial_state.set_weight_map(w_new);
+
+	init_initial_weights = true;
+}
+
+void Clustering::init_merging_parameters(DeltasDistribT deltas_c,
+		DeltasDistribT deltas_g) {
+	switch (merging_type) {
+	case MANUAL_LAMBDA: {
+		break;
+	}
+	case ADAPTIVE_LAMBDA: {
+		float mean_c = deltas_mean(deltas_c);
+		float mean_g = deltas_mean(deltas_g);
+		lambda = mean_g / (mean_c + mean_g);
+		break;
+	}
+	case EQUALIZATION: {
+		cdf_c = compute_cdf(deltas_c);
+		cdf_g = compute_cdf(deltas_g);
+	}
+	}
+}
+
+std::map<short, float> Clustering::compute_cdf(DeltasDistribT dist) {
+	std::map<short, float> cdf;
+	int bins[bins_num] = { };
+
+	DeltasDistribT::iterator d_itr, d_itr_end;
+	d_itr = dist.begin();
+	d_itr_end = dist.end();
+	int n = dist.size();
+	for (; d_itr != d_itr_end; ++d_itr) {
+		float d = *d_itr;
+		short bin = std::floor(d * bins_num);
+		if (bin == bins_num)
+			bin--;
+		bins[bin]++;
+	}
+
+	for (short i = 0; i < bins_num; i++) {
+		float v = 0;
+		for (short j = 0; j <= i; j++)
+			v += bins[j];
+		v /= n;
+		cdf.insert(std::pair<short, float>(i, v));
+	}
+
+	return cdf;
+}
+
+float Clustering::t_c(float delta_c) const {
+	float ret = 0;
+	switch (merging_type) {
+	case MANUAL_LAMBDA: {
+		ret = lambda * delta_c;
+		break;
+	}
+	case ADAPTIVE_LAMBDA: {
+		ret = lambda * delta_c;
+		break;
+	}
+	case EQUALIZATION: {
+		short bin = std::floor(delta_c * bins_num);
+		if (bin == bins_num)
+			bin--;
+		ret = cdf_c.at(bin)/2;
+	}
+	}
+	return ret;
+}
+
+float Clustering::t_g(float delta_g) const {
+	float ret = 0;
+	switch (merging_type) {
+	case MANUAL_LAMBDA: {
+		ret = (1 - lambda) * delta_g;
+		break;
+	}
+	case ADAPTIVE_LAMBDA: {
+		ret = (1 - lambda) * delta_g;
+		break;
+	}
+	case EQUALIZATION: {
+		short bin = std::floor(delta_g * bins_num);
+		ret = cdf_g.at(bin)/2;
+	}
+	}
+	return ret;
 }
 
 void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
@@ -265,30 +460,17 @@ bool Clustering::contains(WeightMapT w, uint32_t i1, uint32_t i2) {
 	return false;
 }
 
-float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
-		PointT centroid2) const {
-	Eigen::Vector3f N1 = norm1.getNormalVector3fMap();
-	Eigen::Vector3f C1 = centroid1.getVector3fMap();
-	Eigen::Vector3f N2 = norm2.getNormalVector3fMap();
-	Eigen::Vector3f C2 = centroid2.getVector3fMap();
+float Clustering::deltas_mean(DeltasDistribT deltas) {
+	DeltasDistribT::iterator d_itr, d_itr_end;
+	d_itr = deltas.begin();
+	d_itr_end = deltas.end();
+	float count = 0;
+	float mean_d = 0;
+	for (; d_itr != d_itr_end; ++d_itr) {
+		float delta = *d_itr;
+		count++;
 
-	Eigen::Vector3f C = C2 - C1;
-	C /= C.norm();
-
-	float N1xN2 = N1.cross(N2).norm();
-	float N1_C = std::abs(N1.dot(C));
-	float N2_C = std::abs(N2.dot(C));
-
-	float delta_g = (N1xN2 + N1_C + N2_C) / 3;
-
-//	std::cout << "c1 =\n" << C1 << "\n";
-//	std::cout << "c2 =\n" << C2 << "\n";
-//	std::cout << "C =\n" << C << "\n";
-//	std::cout << "N1_C =\n" << N1_C << "\n";
-//	std::cout << "N2_C =\n" << N2_C << "\n";
-//	std::cout <<"n1 =\n"<< N1 << "\n";
-//	std::cout <<"n2 =\n"<< N2 << "\n";
-//	std::cout <<"n1 x n2 =\n"<< N1.cross(N2) << "\n|n1 x n2| = " << N1xN2 << "\n";
-
-	return delta_g;
+		mean_d = mean_d + (1 / count) * (delta - mean_d);
+	}
+	return mean_d;
 }

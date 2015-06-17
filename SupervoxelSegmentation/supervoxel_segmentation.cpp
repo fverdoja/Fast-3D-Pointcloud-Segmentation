@@ -332,7 +332,7 @@ int main(int argc, char ** argv) {
 	super.getSupervoxelAdjacencyList(supervoxel_adjacency_list);
 
 	std::pair<PointCloudT::Ptr, AdjacencyMapT> state = testClustering(
-			supervoxel_clusters, label_adjacency, 0.3);
+			supervoxel_clusters, label_adjacency, 0.972);
 
 	colored_voxel_cloud = state.first;
 	label_adjacency = state.second;
@@ -587,12 +587,14 @@ std::pair<PointCloudT::Ptr, AdjacencyMapT> testClustering(const ClusteringT i,
 	Clustering segmentation;
 	//segmentation.set_delta_c(RGB_EUCL);
 	segmentation.test_all();
-	segmentation.set_lambda(0);
+	segmentation.set_merging(EQUALIZATION);
+	//segmentation.set_lambda(0);
 	printf("*** initialization starting ***\n");
 	segmentation.set_initialstate(i, ad);
 	printf("*** initialization complete ***\n");
 	segmentation.cluster(th);
-	printf("*** clustering complete ***\n");
+	printf("*** clustering complete (lambda: %f) ***\n",
+			segmentation.get_lambda());
 	std::pair<ClusteringT, AdjacencyMapT> s = segmentation.get_currentstate();
 	std::pair<PointCloudT::Ptr, AdjacencyMapT> ret;
 	ret.first = segmentation.get_colored_cloud();

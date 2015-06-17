@@ -15,7 +15,7 @@ float * ColorUtilities::mean_color(SupervoxelT::Ptr s) {
 	PointCloud<PointT>::iterator v_itr, v_itr_end;
 	v_itr = v->begin();
 	v_itr_end = v->end();
-	long count = 0;
+	float count = 0;
 	float mean_r = 0;
 	float mean_g = 0;
 	float mean_b = 0;
