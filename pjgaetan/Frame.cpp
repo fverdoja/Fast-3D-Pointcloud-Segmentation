@@ -25,6 +25,8 @@ void writeMatToFile16S(cv::Mat& m, const char* filename)
   fout.close();
 }
 
+/*****************************************************************************/
+
 void writeMatToFile8U(cv::Mat& m, const char* filename)
 {
   ofstream fout(filename);
@@ -42,6 +44,7 @@ void writeMatToFile8U(cv::Mat& m, const char* filename)
   fout.close();
 }
 
+/*****************************************************************************/
 
 string type2str(int type) {
   string r;
@@ -65,6 +68,7 @@ string type2str(int type) {
 
   return r;
 }
+/*****************************************************************************/
 
 void drawHist(cv::Mat& m, cv::Mat& Mask){
   
@@ -100,8 +104,9 @@ void drawHist(cv::Mat& m, cv::Mat& Mask){
 
   namedWindow("calcHist Demo", CV_WINDOW_AUTOSIZE );
   imshow("calcHist Demo", histImage );
-
 }
+
+/*****************************************************************************/
 
 void simplifyCloud(std::vector<Point3D>& points, float cell_size)
 {
@@ -109,21 +114,21 @@ void simplifyCloud(std::vector<Point3D>& points, float cell_size)
     
     // simplification by clustering using erase-remove idiom
     // cell_size = 0.001;
-    points.erase(CGAL::grid_simplify_point_set(points.begin(), points.end(), cell_size),
-                 points.end());
-    // Optional: after erase(), use Scott Meyer's "swap trick" to trim excess capacity
+    points.erase(	CGAL::grid_simplify_point_set(	points.begin(),			\
+    												points.end(), cell_size ) ,
+					points.end());
+    /* Optional: after erase(), use Scott Meyer's "swap trick" to trim excess
+     * capacity */
     vector<Point3D>(points).swap(points);
     
   // ofLogVerbose("simplifyCloud") << ofGetElapsedTimeMillis()-start_tic << "[msec]";
-
 }
 
+/*****************************************************************************/
 
-
-
-/***************************************************************************************/
-/*************************** Methods for the class InputFrame **************************/
-/***************************************************************************************/
+/*****************************************************************************/
+/*************************** Methods for the class InputFrame ****************/
+/*****************************************************************************/
 
 void InputFrame::Draw(bool color) {
 	
@@ -131,9 +136,11 @@ void InputFrame::Draw(bool color) {
   glBindBuffer(GL_ARRAY_BUFFER, _frame_buf);
 
   glVertexPointer(3, GL_FLOAT, 0, BUFFER_OFFSET(0));
-  glNormalPointer(GL_FLOAT, 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)));// on vient stoquer les normales � la suite du buffer
+  // on vient stocker les normales a la suite du buffer
+  glNormalPointer(GL_FLOAT, 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)));
   if (color)
-    glColorPointer(3, GL_FLOAT , 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)+_n*_m*3*sizeof(float)));
+    glColorPointer(3, GL_FLOAT , 0, BUFFER_OFFSET(	_n*_m*3*sizeof(float) + \
+    												_n*_m*3*sizeof(float)));
 
   /* activation des tableaux de donnees */
   glEnableClientState(GL_VERTEX_ARRAY);
@@ -153,9 +160,9 @@ void InputFrame::Draw(bool color) {
 
 }
 
-/***************************************************************************************/
-/*************************** Methods for the class OffLineFrame **************************/
-/***************************************************************************************/
+/*****************************************************************************/
+/*************************** Methods for the class OffLineFrame **************/
+/*****************************************************************************/
 
 void OffLineFrame::LoadFrame(string filename_depth, string filename_color) {
   
@@ -185,15 +192,18 @@ void OffLineFrame::LoadFrame(string filename_depth, string filename_color) {
   cv::Mat out;
   bilateralFilter(tmp, out, 5, 100.0, 100.0);
   out.convertTo(_depth_test, CV_16UC1);*/
-  this->_depth_dev_test.upload(depth_test); //on charge l'image dans le GPU dans l'attribut _depth_dev_test de notre frame
+  //on charge l'image dans le GPU dans l'attribut _depth_dev_test de notre frame
+  this->_depth_dev_test.upload(depth_test);
   depth_test.release();// On libere l'image du CPU
 
   this->_color_dev_test.upload(color_test); //on charge l'image dans le GPU
   color_test.release();// On libere l'image du CPU
   
-  checkCudaErrors( cudaGraphicsMapResources (1, _Resources_t) );// On reserve l'utilisation du GPU � cuda
+  // On reserve l'utilisation du GPU a cuda
+  checkCudaErrors( cudaGraphicsMapResources (1, _Resources_t) );
   // Copy RGBD data 
-  gpu_cpy_char3(_color_dev_test, _RGB_dev, _n,  _m);// On met la matrice color dans le VBO _RGB_dev
+  // On met la matrice color dans le VBO _RGB_dev
+  gpu_cpy_char3(_color_dev_test, _RGB_dev, _n,  _m);
   // Compute Vertex position
 //	checkCudaErrors( cudaMemset(_VMap_dev, 0, 3*_n*_m*sizeof(float)) );
   VertexMapKinect(_VMap_dev, _depth_dev_test, _n, _m);
@@ -203,28 +213,36 @@ void OffLineFrame::LoadFrame(string filename_depth, string filename_color) {
   ComputeNormal(_NMap_dev, _VMap_dev, this->_n, this->_m, true);
 
   // Release VBO data 
-  checkCudaErrors( cudaGraphicsUnmapResources (1, _Resources_t) );// On rend l'utilisation du GPU a la carte graphique //erreur ici
+  // On rend l'utilisation du GPU a la carte graphique //erreur ici
+  checkCudaErrors( cudaGraphicsUnmapResources (1, _Resources_t) );
 
   return;
 }
 
 
-/***************************************************************************************/
-/*************************** Methods for the class KinectFrame *************************/
-/***************************************************************************************/
+/*****************************************************************************/
+/*************************** Methods for the class KinectFrame ***************/
+/*****************************************************************************/
 
-void KinectFrame::LoadKinectData(BYTE* h_colorFrame, USHORT* h_depthFrame, LONG* h_colorCoord) {
+void KinectFrame::LoadKinectData(	BYTE* h_colorFrame, USHORT* h_depthFrame, \
+									LONG* h_colorCoord) {
 
   /**** copy data from host memory to device memory location ****/
   // Copy color frame
-  checkCudaErrors(cudaMemcpy(d_colorFrame, h_colorFrame, sizeof(BYTE)* 4 * _n * _m, cudaMemcpyHostToDevice));
+  checkCudaErrors( cudaMemcpy( d_colorFrame, h_colorFrame, \
+		  	  	  	  	  	   sizeof(BYTE)* 4 * _n * _m,  \
+							   cudaMemcpyHostToDevice));
   //memcpy(_rgb_char, h_colorFrame, sizeof(BYTE)* 4 * _n * _m);
 
   // Copy depth frame
-  checkCudaErrors(cudaMemcpy(d_depthFrame, h_depthFrame, sizeof(USHORT) * _n * _m, cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(	d_depthFrame, h_depthFrame, \
+		  	  	  	  	  	  	sizeof(USHORT) * _n * _m, 	\
+								cudaMemcpyHostToDevice));
 
   // copy color coordinates
-  checkCudaErrors(cudaMemcpy(d_colorCoord, h_colorCoord, sizeof(LONG)* 2 * _n * _m, cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(	d_colorCoord, h_colorCoord, \
+		  	  	  	  	  	  	sizeof(LONG)* 2 * _n * _m, 	\
+								cudaMemcpyHostToDevice));
 
   checkCudaErrors( cudaGraphicsMapResources (1, _Resources_t) );
   
@@ -232,7 +250,8 @@ void KinectFrame::LoadKinectData(BYTE* h_colorFrame, USHORT* h_depthFrame, LONG*
   checkCudaErrors( cudaMemset(_NMap_dev,0, 3*_n * _m * sizeof(float)) );
   checkCudaErrors( cudaMemset(_RGB_dev, 0, 3*_n * _m * sizeof(float)) );
 
-  MapData2VBO_cu(d_colorFrame, d_depthFrame, d_colorCoord, _VMap_dev, _RGB_dev, _n, _m);
+  MapData2VBO_cu(	d_colorFrame, d_depthFrame, d_colorCoord, _VMap_dev, \
+		  	  	  	_RGB_dev, _n, _m);
 
   checkCudaErrors( cudaMemset(_NMap_dev, 0, 3*_n*_m*sizeof(float)) );
   ComputeNormal(_NMap_dev, _VMap_dev, _n, _m, true);
@@ -242,9 +261,9 @@ void KinectFrame::LoadKinectData(BYTE* h_colorFrame, USHORT* h_depthFrame, LONG*
 }
 
 
-/***************************************************************************************/
-/*************************** Methods for the class PredictedFrame **********************/
-/***************************************************************************************/
+/*****************************************************************************/
+/*************************** Methods for the class PredictedFrame ************/
+/*****************************************************************************/
 
 void PredictedFrame::print(char *filename) {
 
@@ -253,10 +272,13 @@ void PredictedFrame::print(char *filename) {
 	float *RGB_dev = getRGB();
 
 	float *VMap = (float *) malloc(3*_n*_m*sizeof(float));
-	cudaMemcpy(VMap, (float *) VMap_dev,  3*_n * _m * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(VMap, (float *) VMap_dev,  3*_n * _m * sizeof(float),	\
+			cudaMemcpyDeviceToHost);
 	float *NMap = (float *) malloc(3*_n*_m*sizeof(float));
-	cudaMemcpy(NMap, (float *) NMap_dev,  3*_n * _m * sizeof(float), cudaMemcpyDeviceToHost);
-	cudaMemcpy(_rgb, (float *) RGB_dev,  4*_n * _m * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaMemcpy(NMap, (float *) NMap_dev,  3*_n * _m * sizeof(float), 	\
+			cudaMemcpyDeviceToHost);
+	cudaMemcpy(_rgb, (float *) RGB_dev,  4*_n * _m * sizeof(float), 	\
+			cudaMemcpyDeviceToHost);
 
 	int nbVertex = 0;
 	for (int i = 0; i < _n; i++) {
@@ -307,10 +329,14 @@ void PredictedFrame::print(char *filename) {
   for (int i = 0; i < _n; i++) {
     for (int j = 0; j < _m; j++) {
       if (VMap[3*(i*_m+j)+2] != 0.0)
-      filestr << VMap[3*(i*_m+j)] << " " << VMap[3*(i*_m+j)+1] << " " << VMap[3*(i*_m+j)+2] << " "
-      << NMap[3*(i*_m+j)] << " " << NMap[3*(i*_m+j)+1] << " " << NMap[3*(i*_m+j)+2] << " "
+      filestr << VMap[3*(i*_m+j)] 	<< " " << VMap[3*(i*_m+j)+1] 	<< " " \
+	  	  	  << VMap[3*(i*_m+j)+2] << " " << NMap[3*(i*_m+j)] 		<< " " \
+			  << NMap[3*(i*_m+j)+1] << " " << NMap[3*(i*_m+j)+2] 	<< " " \
       //<< 255 << " " << 255 << " " << 255 << " " << "255\n";
-      << static_cast<int>(_rgb[4*(i*_m+j)]*255.0) << " " << static_cast<int>(_rgb[4*(i*_m+j)+1]*255.0) << " " << static_cast<int>(_rgb[4*(i*_m+j)+2]*255.0) << " " << "255\n";
+			  << static_cast<int>(_rgb[4*(i*_m+j)]*255.0) 			<< " " \
+			  << static_cast<int>(_rgb[4*(i*_m+j)+1]*255.0) 		<< " " \
+			  << static_cast<int>(_rgb[4*(i*_m+j)+2]*255.0) 		<< " " \
+			  << "255\n";
     }
   }
 
@@ -318,6 +344,8 @@ void PredictedFrame::print(char *filename) {
   free(VMap);
   free(NMap);
 }
+
+/*****************************************************************************/
 
 void PredictedFrame::save(char *filename, int indx) {
   char destfilename[100];
@@ -341,9 +369,12 @@ void PredictedFrame::save(char *filename, int indx) {
 
   for (i=0,k=_n-1;i<_n;i++,k--) {
     for (j=0;j<_m;j++) {
-      img.at<cv::Vec3w>(k,j)[2] = 200 * (unsigned short)(_rgb[4*(i*_m + j)]   * 255.0);
-      img.at<cv::Vec3w>(k,j)[1] = 200 * (unsigned short)(_rgb[4*(i*_m + j)+1] * 255.0);
-      img.at<cv::Vec3w>(k,j)[0] = 200 * (unsigned short)(_rgb[4*(i*_m + j)+2] * 255.0);
+      img.at<cv::Vec3w>(k,j)[2] = 200 * (unsigned short)(_rgb[4*(i*_m + j)]   \
+    		  * 255.0);
+      img.at<cv::Vec3w>(k,j)[1] = 200 * (unsigned short)(_rgb[4*(i*_m + j)+1] \
+    		  * 255.0);
+      img.at<cv::Vec3w>(k,j)[0] = 200 * (unsigned short)(_rgb[4*(i*_m + j)+2] \
+    		  * 255.0);
     }
   }
 
@@ -354,6 +385,8 @@ void PredictedFrame::save(char *filename, int indx) {
   img.~Mat();
 }
 
+/*****************************************************************************/
+
 void PredictedFrame::ReadFrame(cudaGraphicsResource_t *Resources) {
 	
 	cudaGraphicsResource_t Resources_tot [2];
@@ -363,7 +396,8 @@ void PredictedFrame::ReadFrame(cudaGraphicsResource_t *Resources) {
 	checkCudaErrors( cudaGraphicsMapResources ( 2, Resources_tot) );
 
 	cudaArray* My_Array;
-	checkCudaErrors( cudaGraphicsSubResourceGetMappedArray( &My_Array, Resources[0], 0, 0) );		
+	checkCudaErrors( cudaGraphicsSubResourceGetMappedArray( \
+			&My_Array, Resources[0], 0, 0) );
 	ReadFrame_cu(_VMap_dev, _RGB_dev, _NMap_dev, My_Array, _n, _m);
 
 	checkCudaErrors( cudaMemset(_NMap_dev, 0, 3*_n*_m*sizeof(float)) );
@@ -371,6 +405,8 @@ void PredictedFrame::ReadFrame(cudaGraphicsResource_t *Resources) {
 		
 	checkCudaErrors( cudaGraphicsUnmapResources (2,  Resources_tot) );		
 }
+
+/*****************************************************************************/
 
 void PredictedFrame::Draw(bool color, bool quad) {
 	
@@ -380,7 +416,8 @@ void PredictedFrame::Draw(bool color, bool quad) {
 	glVertexPointer(3, GL_FLOAT, 0, BUFFER_OFFSET(0));
 	glNormalPointer(GL_FLOAT, 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)));
 	if (color)
-		glColorPointer(4, GL_FLOAT , 0, BUFFER_OFFSET(_n*_m*3*sizeof(float)+_n*_m*3*sizeof(float)));
+		glColorPointer(4, GL_FLOAT , 0, \
+				BUFFER_OFFSET(_n*_m*3*sizeof(float)+_n*_m*3*sizeof(float)));
 
 	/* activation des tableaux de donnees */
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -394,7 +431,8 @@ void PredictedFrame::Draw(bool color, bool quad) {
 	} else {
 		/* rendu indices */
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _index_buf);
-		glDrawElements(GL_QUADS, 4*(_n-1)*(_m-1), GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+		glDrawElements(GL_QUADS, 4*(_n-1)*(_m-1), GL_UNSIGNED_INT, \
+				BUFFER_OFFSET(0));
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
@@ -405,6 +443,8 @@ void PredictedFrame::Draw(bool color, bool quad) {
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+
+/*****************************************************************************/
 
 void PredictedFrame::Transform(float *pose, bool quad) {
 
@@ -425,6 +465,8 @@ void PredictedFrame::Transform(float *pose, bool quad) {
 	checkCudaErrors( cudaDeviceSynchronize() );
 }
 
+/*****************************************************************************/
+
 void PredictedFrame::Merge(InputFrame *frame) {
 
 	cudaGraphicsResource_t Resources [2];
@@ -438,9 +480,11 @@ void PredictedFrame::Merge(InputFrame *frame) {
 		checkCudaErrors( cudaGraphicsMapResources (1, Resources) );
 
 	if (frame->_offline)
-		MergeDepthOff(_RGB_dev, ( (OffLineFrame *) frame)->_depth_dev_test, frame->getRGB(), _Mask_dev, _n, _m);
+		MergeDepthOff(_RGB_dev, ( (OffLineFrame *) frame)->_depth_dev_test, \
+				frame->getRGB(), _Mask_dev, _n, _m);
 	else
-		MergeDepthKinect(_RGB_dev, ( (KinectFrame *) frame)->d_depthFrame, frame->getRGB(), _Mask_dev, _n, _m);
+		MergeDepthKinect(_RGB_dev, ( (KinectFrame *) frame)->d_depthFrame,  \
+				frame->getRGB(), _Mask_dev, _n, _m);
 
 	checkCudaErrors( cudaMemset(_VMap_dev, 0, 3*_n*_m*sizeof(float)) );
 	checkCudaErrors( cudaMemset(_NMap_dev, 0, 3*_n*_m*sizeof(float)) );
@@ -460,6 +504,8 @@ void PredictedFrame::Merge(InputFrame *frame) {
 	cv::imshow("Mask", tmp_host);*/
 }
 
+/*****************************************************************************/
+
 void PredictedFrame::Cpy(InputFrame *frame) {
 	cudaGraphicsResource_t Resources [2];
 	Resources [0] = _Resources_t[0];
@@ -471,20 +517,26 @@ void PredictedFrame::Cpy(InputFrame *frame) {
 	else 
 		checkCudaErrors( cudaGraphicsMapResources (1, Resources) );
 
-	checkCudaErrors( cudaMemcpy(_VMap_dev, frame->getVMap(), 3*_n*_m*sizeof(float), cudaMemcpyDeviceToDevice) );
-	checkCudaErrors( cudaMemcpy(_NMap_dev, frame->getNMap(), 3*_n*_m*sizeof(float), cudaMemcpyDeviceToDevice) );
+	checkCudaErrors( cudaMemcpy(_VMap_dev, frame->getVMap(), \
+			3*_n*_m*sizeof(float), cudaMemcpyDeviceToDevice) );
+	checkCudaErrors( cudaMemcpy(_NMap_dev, frame->getNMap(), \
+			3*_n*_m*sizeof(float), cudaMemcpyDeviceToDevice) );
 
 	// Add z buffer in RGBD data 
 	if (frame->_offline)
-		gpu_add_zbuffOff(( (OffLineFrame *) frame)->_depth_dev_test, frame->getRGB(), _RGB_dev, _n,  _m);
+		gpu_add_zbuffOff( ( (OffLineFrame *) frame)->_depth_dev_test, \
+				frame->getRGB(), _RGB_dev, _n,  _m);
 	else
-		gpu_add_zbuffKinect(( (KinectFrame *) frame)->d_depthFrame, frame->getRGB(), _RGB_dev, _n,  _m);
+		gpu_add_zbuffKinect( ( (KinectFrame *) frame)->d_depthFrame,  \
+				frame->getRGB(), _RGB_dev, _n,  _m);
 	
 	if (DISPLAY_FRAME_IN)
 		checkCudaErrors( cudaGraphicsUnmapResources (2, Resources) );
 	else
 		checkCudaErrors( cudaGraphicsUnmapResources (1, Resources) );
 }
+
+/*****************************************************************************/
 
 void PredictedFrame::InitMask() {
 	cudaGraphicsResource_t Resources [2];
@@ -496,6 +548,8 @@ void PredictedFrame::InitMask() {
 	
 	checkCudaErrors( cudaGraphicsUnmapResources (1, Resources) );
 }
+
+/*****************************************************************************/
 
 void PredictedFrame::ProjectMask(float *pose) {
 	SetPoseMatrix(pose);
@@ -510,63 +564,62 @@ void PredictedFrame::ProjectMask(float *pose) {
 	checkCudaErrors( cudaGraphicsUnmapResources (1, _Resources_t) );
 }
 
-
-/***************************************************************************************/
-/*************************** Methods for the class SegmFrame ***********************/
-/***************************************************************************************/
-
-
+/*****************************************************************************/
+/*************************** Methods for the class SegmFrame *****************/
+/*****************************************************************************/
 
 void SegmFrame::Segment() {
 
-  cv::Mat edge_canny,edge_thresh,edgeT, edgeU, edgeV,srcT,srcU,srcV;
-  
-  const int kern_size = 3;
+	cv::Mat edge_canny,edge_thresh,edgeT, edgeU, edgeV,srcT,srcU,srcV;
 
-  cv::gpu::GpuMat d_img;
-  d_img.create(getN(), getM(), CV_8UC1);  // allocation
-  cv::gpu::GpuMat d_img2;
-  d_img2.create(getN(), getM(), CV_8UC1); // allocation
-  
-  cv::Mat tmp;
+	const int kern_size = 3;
+	const int blur_size = 3;
 
-  checkCudaErrors( cudaGraphicsMapResources ( 1, _Resources_t) );
+	cv::gpu::GpuMat d_img;
+	d_img.create(getN(), getM(), CV_8UC1);  // allocation
+	cv::gpu::GpuMat d_img2;
+	d_img2.create(getN(), getM(), CV_8UC1); // allocation
 
-  /****** Compute edges from the Normal image **********/
-  //	 Get edges from the T channel
-  puts("Computing edges (Canny filter)");
-    gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 0); // On recupere que les composante Norm de la chnl 0
-    d_img.download(srcT); //copy d_img to device in srcT
-    
-    //cv::imwrite("normch0.png", tmp);
+	cv::Mat tmp;
 
-//    cv::blur( srcT, srcT, cv::Size(3,3) );
-    cv::Canny(srcT, edgeT, 120.0, 30.0, kern_size);
-    //edgesR.download(tmp);
+	checkCudaErrors( cudaGraphicsMapResources ( 1, _Resources_t) );
+
+	/****** Compute edges from the Normal image **********/
+	//	 Get edges from the T channel
+	puts("Computing edges (Canny filter)");
+	// On recupere que les composante Norm de la chnl 0
+	gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 0);
+	d_img.download(srcT); //copy d_img to device in srcT
+
+	cv::imwrite("normchT.png", tmp);
+
+	cv::blur( srcT, srcT, cv::Size(blur_size,blur_size) );
+	cv::Canny(srcT, edgeT, 120.0, 30.0, kern_size);
+	//edgesR.download(tmp);
 
 
-    gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 1);
-    d_img.download(srcU);// 
-    
-    //cv::imwrite("normch1.png", tmp);
+	gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 1);
+	d_img.download(srcU);//
 
-//    cv::blur( srcU, srcU, cv::Size(3,3) );
-    cv::Canny(srcU, edgeU, 120.0, 30.0, kern_size);
-    //edgesG.download(tmp);
-  
+	cv::imwrite("normchU.png", tmp);
 
-    gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 2);
-    d_img.download(srcV);// 
-    
-    //cv::imwrite("normch2.png", tmp);
+	cv::blur( srcU, srcU, cv::Size(blur_size,blur_size) );
+	cv::Canny(srcU, edgeU, 120.0, 30.0, kern_size);
+	//edgesG.download(tmp);
 
-//    cv::blur( srcV, srcV, cv::Size(3,3) );
-    cv::Canny(srcV, edgeV, 120.0, 30.0, kern_size);
-    //edgesB.download(tmp);
-    
-    cv::imwrite("Cannych0.png", edgeT);
-    cv::imwrite("Cannych1.png", edgeU);
-    cv::imwrite("Cannych2.png", edgeV);
+
+	gpu_cpyN(d_img, this->getNMap(), getN(), getM(), 2);
+	d_img.download(srcV);//
+
+	cv::imwrite("normchV.png", tmp);
+
+	cv::blur( srcV, srcV, cv::Size(blur_size,blur_size) );
+	cv::Canny(srcV, edgeV, 120.0, 30.0, kern_size);
+	//edgesB.download(tmp);
+
+	cv::imwrite("Cannych0.png", edgeT);
+	cv::imwrite("Cannych1.png", edgeU);
+	cv::imwrite("Cannych2.png", edgeV);
 
 //  gpu_Sum(d_img, edgesR, edgesG, edgesB, getN(), getM());// (moyenne)
   edge_canny = edgeT+edgeU+edgeV;
@@ -595,15 +648,20 @@ void SegmFrame::Segment() {
   
   d_edge_canny.upload(edge_canny);
   
-  gpu_Thresh(d_edge_thresh, d_edge_canny, 20, getNMap(), getN(), getM());// Segmentation/Binarisation
-  d_edge_thresh.download(edge_thresh);// img2 = parties segmentees (inverse binaris� de d_img)
-  //threshold(edge_canny,edge_thresh,20,1,THRESH_BINARY); //cpu version, does not work
+  // Segmentation/Binarisation
+  gpu_Thresh(d_edge_thresh, d_edge_canny, 20, getNMap(), getN(), getM());
+  // img2 = parties segmentees (inverse binarise de d_img)
+  d_edge_thresh.download(edge_thresh);
+  //cpu version, does not work
+  //threshold(edge_canny,edge_thresh,20,1,THRESH_BINARY);
 
   //cv::imshow("edges", tmp);
   //cv::imwrite("edges.png", tmp);
 
   const int erosion_size = 2;
-  cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE, cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ), cv::Point( erosion_size, erosion_size ) );
+  cv::Mat element = cv::getStructuringElement( \
+		  cv::MORPH_ELLIPSE, cv::Size( 2*erosion_size + 1, 2*erosion_size+1 ),\
+		  cv::Point( erosion_size, erosion_size ) );
 
   cv::Mat dilation_dst;
 
@@ -615,13 +673,15 @@ void SegmFrame::Segment() {
 
   cv::imwrite("dilation.png", dilation_dst);
 
-  //********************** Find connected components ********************************/
-  cv::Mat output = cv::Mat::zeros(dilation_dst.size(), CV_8UC1);
+  //********************** Find connected components **************************
 
   cv::Mat binary;
-  std::vector < std::vector<cv::Point2i > > blobs;// tableau de tableaux de point (x,y), blobs rassemble tous les points connect�s par label...
+  /* tableau de tableaux de point (x,y), blobs rassemble tous les points
+   * connectes par label... */
+  std::vector < std::vector<cv::Point2i > > blobs;
 
-  cv::threshold(dilation_dst, binary, 0.0, 1.0, cv::THRESH_BINARY);//sert juste � ramener l'image dilation entre 0 et 1 au lieux de 0 et 255
+  //sert juste a ramener l'image dilation entre 0 et 1 au lieux de 0 et 255
+  cv::threshold(dilation_dst, binary, 0.0, 1.0, cv::THRESH_BINARY);
 
   //cv::imshow("binary", binary);
 
@@ -632,7 +692,8 @@ void SegmFrame::Segment() {
   printf("Found %lu blobs in the input\n",blob_n);
 
   //size_t min_size = 5000;
-  //std::vector < std::vector<cv::Point2i > > _blobsFidx;// blobsF pour stocker que les nuage de points avec plus de 2000 points
+  // blobsF pour stocker que les nuage de points avec plus de 2000 points
+  //std::vector < std::vector<cv::Point2i > > _blobsFidx;
 
   for(size_t i=0; i < blob_n; i++) {
     
@@ -643,7 +704,8 @@ void SegmFrame::Segment() {
     else
       printf("%d S%d ",i,curr_size);
     
-    if (curr_size > MIN_SIZE_PLAN) // MIN_SIZE_PLAN define min size, 2000 pts here
+    // MIN_SIZE_PLAN define min size, 2000 pts here
+    if (curr_size > MIN_SIZE_PLAN)
       _blobsFidx.push_back(blobs[i]);
     
   }   putchar('\n'); //newline after printf
@@ -654,7 +716,8 @@ void SegmFrame::Segment() {
   //cv::Mat Mask = cv::Mat::zeros(getN(), getM(), CV_8UC1);//init mask to zero
   for (int i = 0; i < getN(); i++) {
     for (int j = 0; j < getM(); j++) {
-      if (binary.at<unsigned char>(i,j) > 0) {//on inialise une image comme binary mais sur 3 channel
+	//on initialise une image comme binary mais sur 3 channel
+      if (binary.at<unsigned char>(i,j) > 0) {
 	imgTest.at<cv::Vec3b>(i,j)[0] = 255;
 	imgTest.at<cv::Vec3b>(i,j)[1] = 255;
 	imgTest.at<cv::Vec3b>(i,j)[2] = 255;
@@ -673,13 +736,15 @@ void SegmFrame::Segment() {
     unsigned char B = (unsigned char)((float(rand())/RAND_MAX)*255);
     size_t curr_size = _blobsFidx[i].size();
     for (int j = 0; j < curr_size; j++) {
-      if (binary.at<unsigned char>(_blobsFidx[i][j].y,_blobsFidx[i][j].x) > 0) { //is this condition usefull ??
-	imgTest.at<cv::Vec3b>(_blobsFidx[i][j].y,_blobsFidx[i][j].x)[2] = R;
-	imgTest.at<cv::Vec3b>(_blobsFidx[i][j].y,_blobsFidx[i][j].x)[1] = G;
-	imgTest.at<cv::Vec3b>(_blobsFidx[i][j].y,_blobsFidx[i][j].x)[0] = B;
-	//Mask.at<unsigned char>(_blobsFidx[i][j].y,_blobsFidx[i][j].x) = 255;
-      }
-    }
+    	//is this condition usefull ??
+    	if (binary.at<unsigned char>(_blobsFidx[i][j].y,_blobsFidx[i][j].x) > 0)
+    	  {
+			imgTest.at<cv::Vec3b>(_blobsFidx[i][j].y,_blobsFidx[i][j].x)[2] = R;
+			imgTest.at<cv::Vec3b>(_blobsFidx[i][j].y,_blobsFidx[i][j].x)[1] = G;
+			imgTest.at<cv::Vec3b>(_blobsFidx[i][j].y,_blobsFidx[i][j].x)[0] = B;
+			//Mask.at<unsigned char>(_blobsFidx[i][j].y,_blobsFidx[i][j].x) = 255;
+        }
+     }
   }
 
   //cv::imshow("Mask", Mask);
@@ -690,12 +755,14 @@ void SegmFrame::Segment() {
   checkCudaErrors( cudaGraphicsUnmapResources( 1, _Resources_t) );
 }
 
+/*****************************************************************************/
 
 void SegmFrame::Get3DBlobs() { 
 
   checkCudaErrors( cudaGraphicsMapResources ( 1, _Resources_t) );
   float *VMap = (float *) malloc(3*getN()*getM()*sizeof(float));
-  cudaMemcpy(VMap, (float *) getVMap(),  3*getN()*getM() * sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(VMap, (float *) getVMap(),  3*getN()*getM() * sizeof(float), \
+		  cudaMemcpyDeviceToHost);
 
   int m = getM();
 
@@ -739,18 +806,24 @@ void SegmFrame::ComputePCA() {
     }
 
     cv::PCA pca_analysis(Segm_vertex, cv::Mat(), CV_PCA_DATA_AS_ROW);
-    cv::Point3d pos(double(pca_analysis.mean.at<float>(0, 0)), double(pca_analysis.mean.at<float>(0, 1)), double(pca_analysis.mean.at<float>(0, 2)));
-    vector<cv::Point3d> eigenvectors(4); // 4 : adding the position to the last position
+    cv::Point3d pos(	double(pca_analysis.mean.at<float>(0, 0)), \
+    					double(pca_analysis.mean.at<float>(0, 1)), \
+						double(pca_analysis.mean.at<float>(0, 2)));
+    // 4 : adding the position to the last position
+    vector<cv::Point3d> eigenvectors(4);
 
     for (int k = 0; k < 3; ++k){
-      eigenvectors[k] = cv::Point3d(double(pca_analysis.eigenvectors.at<float>(k, 0)),
-      double(pca_analysis.eigenvectors.at<float>(k, 1)), 
-      double(pca_analysis.eigenvectors.at<float>(k, 2)));
+      eigenvectors[k] = cv::Point3d( \
+    		  double(pca_analysis.eigenvectors.at<float>(k, 0)),
+			  double(pca_analysis.eigenvectors.at<float>(k, 1)),
+			  double(pca_analysis.eigenvectors.at<float>(k, 2)));
     }
-    // on met la position de valeur moyenne comme 4 eme coordonnee des vecteurs propres
+    /* on met la position de valeur moyenne comme 4 eme coordonnee des vecteurs
+     * propres */
     eigenvectors[3] = pos;
 
-    cout << "eigen_vecs : " << eigenvectors[0] << " " << eigenvectors[1] << " " << eigenvectors[2] <<  endl;
+    cout << "eigen_vecs : " << eigenvectors[0] << " " << eigenvectors[1] << \
+			" " 			<< eigenvectors[2] <<  endl;
 
     _eigenVecs.push_back(eigenvectors);
     Segm_vertex.release();
@@ -760,12 +833,14 @@ void SegmFrame::ComputePCA() {
   }
 }
 
+/*****************************************************************************/
+
 void SegmFrame::GetBboxOriented(){ // Gives 4 first control points
 
-		//////////////////////////////// Getting min and max of the bounding box ////////
+////////////////////////////// Getting min and max of the bounding box ////////
 
 	std::vector<cv::Point3d> bbox;
-	std::vector<Point3D>  ctrls;
+	::vector<Point3D>  ctrls;
 	double temp[3];
 
 	double maxi = std::numeric_limits<double>::max();
@@ -774,102 +849,160 @@ void SegmFrame::GetBboxOriented(){ // Gives 4 first control points
 
 	for (int i = 0; i < _blobsF.size(); i++) {
 
-			double xori = 0, yori = 0, zori = 0, xomin = maxi, yomin = maxi, zomin = maxi, xomax = mini , yomax = mini, zomax=mini, 
-					xp = 0, yp = 0, zp = 0, xpmin = maxi, ypmin = maxi, zpmin = maxi, xpmax = mini, ypmax = mini, zpmax = mini,
-					xp2=0, yp2=0, zp2=0;
+		double 	xori, 	yori, 	zori, 	\
+				xomin, 	yomin, 	zomin,	\
+				xomax, 	yomax, 	zomax,	\
+				xp, 	yp, 	zp,		\
+				xpmin, 	ypmin, 	zpmin,	\
+				xpmax, 	ypmax, 	zpmax, 	\
+				xp2, 	yp2, 	zp2;
+		xori = yori = zori = xp = yp = zp = xp2 = yp2 = zp2 = 0;
+		xomin = yomin = zomin = xpmin = ypmin = zpmin = maxi;
+		xomax = yomax = zomax = xpmax = ypmax = zpmax = mini;
 
-			int Cxpmin = 0, Cypmin = 0, Czpmin = 0, Cxpmax = 0, Cypmax = 0, Czpmax = 0;
-			
-			for (int j = 0; j < _blobsF[i].size(); j++) {
-					xori = _blobsF[i][j].x;
-					yori = _blobsF[i][j].y;
-					zori = _blobsF[i][j].z;
-								
+		int 	Cxpmin = 0, Cypmin = 0, Czpmin = 0, \
+				Cxpmax = 0, Cypmax = 0, Czpmax = 0;
 
-					xp = _eigenVecs[i][0].x*xori + _eigenVecs[i][0].y*yori + _eigenVecs[i][0].z*zori; 
-					yp = _eigenVecs[i][1].x*xori + _eigenVecs[i][1].y*yori + _eigenVecs[i][1].z*zori; 
-					zp = _eigenVecs[i][2].x*xori + _eigenVecs[i][2].y*yori + _eigenVecs[i][2].z*zori;
+		for (int j = 0; j < _blobsF[i].size(); j++) {
+			xori = _blobsF[i][j].x;
+			yori = _blobsF[i][j].y;
+			zori = _blobsF[i][j].z;
+
+			xp = 	_eigenVecs[i][0].x*xori + \
+					_eigenVecs[i][0].y*yori + \
+					_eigenVecs[i][0].z*zori;
+			yp = 	_eigenVecs[i][1].x*xori + \
+					_eigenVecs[i][1].y*yori + \
+					_eigenVecs[i][1].z*zori;
+			zp = 	_eigenVecs[i][2].x*xori + \
+					_eigenVecs[i][2].y*yori + \
+					_eigenVecs[i][2].z*zori;
+
+			if (xpmin > xp) {xpmin = xp;}
+			if (xpmax < xp) {xpmax = xp;}
+
+			if (ypmin > yp) {ypmin = yp;}
+			if (ypmax < yp) {ypmax = yp;}
+
+			if (zpmin > zp) {zpmin = zp;}
+			if (zpmax < zp) {zpmax = zp;}
+		}
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmin + \
+					_eigenVecs[i][1].x*ypmax + \
+					_eigenVecs[i][2].x*zpmin;
+		temp[1] = 	_eigenVecs[i][0].y*xpmin + \
+					_eigenVecs[i][1].y*ypmax + \
+					_eigenVecs[i][2].y*zpmin;
+		temp[2] = 	_eigenVecs[i][0].z*xpmin + \
+					_eigenVecs[i][1].z*ypmax + \
+					_eigenVecs[i][2].z*zpmin;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmin + \
+					_eigenVecs[i][1].x*ypmax + \
+					_eigenVecs[i][2].x*zpmax;
+		temp[1] = 	_eigenVecs[i][0].y*xpmin + \
+					_eigenVecs[i][1].y*ypmax + \
+					_eigenVecs[i][2].y*zpmax;
+		temp[2] = 	_eigenVecs[i][0].z*xpmin + \
+					_eigenVecs[i][1].z*ypmax + \
+					_eigenVecs[i][2].z*zpmax;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmin + \
+					_eigenVecs[i][1].x*ypmin + \
+					_eigenVecs[i][2].x*zpmax;
+		temp[1] = 	_eigenVecs[i][0].y*xpmin + \
+					_eigenVecs[i][1].y*ypmin + \
+					_eigenVecs[i][2].y*zpmax;
+		temp[2] = 	_eigenVecs[i][0].z*xpmin + \
+					_eigenVecs[i][1].z*ypmin + \
+					_eigenVecs[i][2].z*zpmax;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmin + \
+					_eigenVecs[i][1].x*ypmin + \
+					_eigenVecs[i][2].x*zpmin;
+		temp[1] = 	_eigenVecs[i][0].y*xpmin + \
+					_eigenVecs[i][1].y*ypmin + \
+					_eigenVecs[i][2].y*zpmin;
+		temp[2] = 	_eigenVecs[i][0].z*xpmin + \
+					_eigenVecs[i][1].z*ypmin + \
+					_eigenVecs[i][2].z*zpmin;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmax + \
+					_eigenVecs[i][1].x*ypmin + \
+					_eigenVecs[i][2].x*zpmin;
+		temp[1] = 	_eigenVecs[i][0].y*xpmax + \
+					_eigenVecs[i][1].y*ypmin + \
+					_eigenVecs[i][2].y*zpmin;
+		temp[2] = 	_eigenVecs[i][0].z*xpmax + \
+					_eigenVecs[i][1].z*ypmin + \
+					_eigenVecs[i][2].z*zpmin;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmax + \
+					_eigenVecs[i][1].x*ypmin + \
+					_eigenVecs[i][2].x*zpmax;
+		temp[1] = 	_eigenVecs[i][0].y*xpmax + \
+					_eigenVecs[i][1].y*ypmin + \
+					_eigenVecs[i][2].y*zpmax;
+		temp[2] = 	_eigenVecs[i][0].z*xpmax + \
+					_eigenVecs[i][1].z*ypmin + \
+					_eigenVecs[i][2].z*zpmax;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmax + \
+					_eigenVecs[i][1].x*ypmax + \
+					_eigenVecs[i][2].x*zpmax;
+		temp[1] = 	_eigenVecs[i][0].y*xpmax + \
+					_eigenVecs[i][1].y*ypmax + \
+					_eigenVecs[i][2].y*zpmax;
+		temp[2] = 	_eigenVecs[i][0].z*xpmax + \
+					_eigenVecs[i][1].z*ypmax + \
+					_eigenVecs[i][2].z*zpmax;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+
+		temp[0] = 	_eigenVecs[i][0].x*xpmax + \
+					_eigenVecs[i][1].x*ypmax + \
+					_eigenVecs[i][2].x*zpmin;
+		temp[1] = 	_eigenVecs[i][0].y*xpmax + \
+					_eigenVecs[i][1].y*ypmax + \
+					_eigenVecs[i][2].y*zpmin;
+		temp[2] = 	_eigenVecs[i][0].z*xpmax + \
+					_eigenVecs[i][1].z*ypmax + \
+					_eigenVecs[i][2].z*zpmin;
+		bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
 
 
-					if (xpmin > xp) {xpmin = xp;}
-					if (xpmax < xp) {xpmax = xp;}
+		/// Adding 4 First control points ! :
 
-					if (ypmin > yp) {ypmin = yp;}
-					if (ypmax < yp) {ypmax = yp;}
+		temp[0] = (bbox[0].x + bbox[1].x)/2.0;
+		temp[1] = (bbox[0].y + bbox[1].y)/2.0;
+		temp[2] = (bbox[0].z + bbox[1].z)/2.0;
+		ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
 
-					if (zpmin > zp) {zpmin = zp;}
-					if (zpmax < zp) {zpmax = zp;}
-			}
+		temp[0] = (bbox[2].x + bbox[3].x)/2.0;
+		temp[1] = (bbox[2].y + bbox[3].y)/2.0;
+		temp[2] = (bbox[2].z + bbox[3].z)/2.0;
+		ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
 
-			
-		
-			temp[0] = _eigenVecs[i][0].x*xpmin + _eigenVecs[i][1].x*ypmax + _eigenVecs[i][2].x*zpmin; 
-			temp[1] = _eigenVecs[i][0].y*xpmin + _eigenVecs[i][1].y*ypmax + _eigenVecs[i][2].y*zpmin; 
-			temp[2] = _eigenVecs[i][0].z*xpmin + _eigenVecs[i][1].z*ypmax + _eigenVecs[i][2].z*zpmin;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+		temp[0] = (bbox[4].x + bbox[5].x)/2.0;
+		temp[1] = (bbox[4].y + bbox[5].y)/2.0;
+		temp[2] = (bbox[4].z + bbox[5].z)/2.0;
+		ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
 
-			temp[0] = _eigenVecs[i][0].x*xpmin + _eigenVecs[i][1].x*ypmax + _eigenVecs[i][2].x*zpmax; 
-			temp[1] = _eigenVecs[i][0].y*xpmin + _eigenVecs[i][1].y*ypmax + _eigenVecs[i][2].y*zpmax;
-			temp[2] = _eigenVecs[i][0].z*xpmin + _eigenVecs[i][1].z*ypmax + _eigenVecs[i][2].z*zpmax;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
+		temp[0] = (bbox[6].x + bbox[7].x)/2.0;
+		temp[1] = (bbox[6].y + bbox[7].y)/2.0;
+		temp[2] = (bbox[6].z + bbox[7].z)/2.0;
+		ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
 
-			temp[0] = _eigenVecs[i][0].x*xpmin + _eigenVecs[i][1].x*ypmin + _eigenVecs[i][2].x*zpmax; 
-			temp[1] = _eigenVecs[i][0].y*xpmin + _eigenVecs[i][1].y*ypmin + _eigenVecs[i][2].y*zpmax; 
-			temp[2] = _eigenVecs[i][0].z*xpmin + _eigenVecs[i][1].z*ypmin + _eigenVecs[i][2].z*zpmax;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
-
-			temp[0] = _eigenVecs[i][0].x*xpmin + _eigenVecs[i][1].x*ypmin + _eigenVecs[i][2].x*zpmin; 
-			temp[1] = _eigenVecs[i][0].y*xpmin + _eigenVecs[i][1].y*ypmin + _eigenVecs[i][2].y*zpmin; 
-			temp[2] = _eigenVecs[i][0].z*xpmin + _eigenVecs[i][1].z*ypmin + _eigenVecs[i][2].z*zpmin;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
-
-			temp[0] = _eigenVecs[i][0].x*xpmax + _eigenVecs[i][1].x*ypmin + _eigenVecs[i][2].x*zpmin; 
-			temp[1] = _eigenVecs[i][0].y*xpmax + _eigenVecs[i][1].y*ypmin + _eigenVecs[i][2].y*zpmin; 
-			temp[2] = _eigenVecs[i][0].z*xpmax + _eigenVecs[i][1].z*ypmin + _eigenVecs[i][2].z*zpmin;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
-
-			temp[0] = _eigenVecs[i][0].x*xpmax + _eigenVecs[i][1].x*ypmin + _eigenVecs[i][2].x*zpmax; 
-			temp[1] = _eigenVecs[i][0].y*xpmax + _eigenVecs[i][1].y*ypmin + _eigenVecs[i][2].y*zpmax; 
-			temp[2] = _eigenVecs[i][0].z*xpmax + _eigenVecs[i][1].z*ypmin + _eigenVecs[i][2].z*zpmax;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
-
-			temp[0] = _eigenVecs[i][0].x*xpmax + _eigenVecs[i][1].x*ypmax + _eigenVecs[i][2].x*zpmax; 
-			temp[1] = _eigenVecs[i][0].y*xpmax + _eigenVecs[i][1].y*ypmax + _eigenVecs[i][2].y*zpmax; 
-			temp[2] = _eigenVecs[i][0].z*xpmax + _eigenVecs[i][1].z*ypmax + _eigenVecs[i][2].z*zpmax;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
-
-			temp[0] = _eigenVecs[i][0].x*xpmax + _eigenVecs[i][1].x*ypmax + _eigenVecs[i][2].x*zpmin; 
-			temp[1] = _eigenVecs[i][0].y*xpmax + _eigenVecs[i][1].y*ypmax + _eigenVecs[i][2].y*zpmin; 
-			temp[2] = _eigenVecs[i][0].z*xpmax + _eigenVecs[i][1].z*ypmax + _eigenVecs[i][2].z*zpmin;
-			bbox.push_back(cv::Point3d(temp[0],temp[1],temp[2]));
-
-
-			/// Adding 4 First control points ! :
-
-			temp[0] = (bbox[0].x + bbox[1].x)/2.0;
-			temp[1] = (bbox[0].y + bbox[1].y)/2.0; 
-			temp[2] = (bbox[0].z + bbox[1].z)/2.0;
-			ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
-
-			temp[0] = (bbox[2].x + bbox[3].x)/2.0;
-			temp[1] = (bbox[2].y + bbox[3].y)/2.0; 
-			temp[2] = (bbox[2].z + bbox[3].z)/2.0;
-			ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
-
-			temp[0] = (bbox[4].x + bbox[5].x)/2.0;
-			temp[1] = (bbox[4].y + bbox[5].y)/2.0; 
-			temp[2] = (bbox[4].z + bbox[5].z)/2.0;
-			ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
-
-			temp[0] = (bbox[6].x + bbox[7].x)/2.0;
-			temp[1] = (bbox[6].y + bbox[7].y)/2.0; 
-			temp[2] = (bbox[6].z + bbox[7].z)/2.0;
-			ctrls.push_back(Point3D(temp[0],temp[1],temp[2]));
-
-			_bboxs.push_back(bbox);
-			bbox.clear();
-			_ctrls.push_back(ctrls);
-			ctrls.clear();
+		_bboxs.push_back(bbox);
+		bbox.clear();
+		_ctrls.push_back(ctrls);
+		ctrls.clear();
 	}
 
 }
@@ -877,9 +1010,9 @@ void SegmFrame::GetBboxOriented(){ // Gives 4 first control points
 
 void SegmFrame::Find2DCtrlPts(){
   //We got the segmented image and point clouds : _blobsFidx
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
   // Let's find the control points on depth image :
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
 
   // load depth image in CPU from GPU :
@@ -935,22 +1068,28 @@ void SegmFrame::Find2DCtrlPts(){
   cv::Mat grad;
   
 
-  cv::Sobel(depthImg, grad_i, ddepth, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT);
+  cv::Sobel(depthImg, grad_i, ddepth, 1, 0, 3, scale, delta, \
+		  cv::BORDER_DEFAULT);
   convertScaleAbs( grad_i, abs_grad_i );
 
-  cv::Sobel(depthImg, grad_j, ddepth, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT);
+  cv::Sobel(depthImg, grad_j, ddepth, 0, 1, 3, scale, delta, \
+		  cv::BORDER_DEFAULT);
   convertScaleAbs( grad_j, abs_grad_j );
   
-  cv::Sobel(grad_i, grad_ii, ddepth, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT);
+  cv::Sobel(grad_i, grad_ii, ddepth, 1, 0, 3, scale, delta, \
+		  cv::BORDER_DEFAULT);
   convertScaleAbs( grad_ii, abs_grad_ii );
 
-  cv::Sobel(grad_i, grad_ij, ddepth, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT);
+  cv::Sobel(grad_i, grad_ij, ddepth, 0, 1, 3, scale, delta, \
+		  cv::BORDER_DEFAULT);
   convertScaleAbs( grad_ij, abs_grad_ij );
 
-  cv::Sobel(grad_j, grad_ji, ddepth, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT);
+  cv::Sobel(grad_j, grad_ji, ddepth, 1, 0, 3, scale, delta, \
+		  cv::BORDER_DEFAULT);
   convertScaleAbs( grad_ji, abs_grad_ji );
 
-  cv::Sobel(grad_j, grad_jj, ddepth, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT);
+  cv::Sobel(grad_j, grad_jj, ddepth, 0, 1, 3, scale, delta, \
+		  cv::BORDER_DEFAULT);
   convertScaleAbs( grad_jj, abs_grad_jj );
 
   /// Total Gradient (approximate)
@@ -983,7 +1122,9 @@ void SegmFrame::Find2DCtrlPts(){
 
     //Erode the mask to remove boundaries :
     int erosion_size2 =7;
-    cv::Mat element2 = cv::getStructuringElement( cv::MORPH_ELLIPSE, cv::Size( 2*erosion_size2 + 1, 2*erosion_size2+1 ), cv::Point( erosion_size2, erosion_size2 ) );
+    cv::Mat element2 = cv::getStructuringElement( cv::MORPH_ELLIPSE, \
+    		cv::Size( 2*erosion_size2 + 1, 2*erosion_size2+1 ), \
+			cv::Point( erosion_size2, erosion_size2 ) );
     cv::erode( Mask, Mask, element2 );
 
 
@@ -1001,7 +1142,8 @@ void SegmFrame::Find2DCtrlPts(){
     for (int i = 0; i < getN(); i++) {
       for (int j = 0; j < getM(); j++) {
 	if(gradwithmask.at<unsigned char>(i,j)>0)
-		ctrlsidx.push_back( Point3D(double(j),double(i), 0.0) ); //permut i and j for being coherent with Vmap
+		//permut i and j for being coherent with Vmap
+		ctrlsidx.push_back( Point3D(double(j),double(i), 0.0) );
       }
     }
 
@@ -1018,18 +1160,28 @@ void SegmFrame::Get3DCtrlPts(){
 
   checkCudaErrors( cudaGraphicsMapResources ( 1, _Resources_t) );
   float *VMap = (float *) malloc(3*getN()*getM()*sizeof(float));
-  cudaMemcpy(VMap, (float *) getVMap(),  3*getN()*getM() * sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(VMap, (float *) getVMap(),  3*getN()*getM() * sizeof(float), \
+		  cudaMemcpyDeviceToHost);
   
   int m = getM();
   
   for (int i = 0; i < _ctrlsidx.size(); i++) {
-    std::vector<Point3D>  ctrls;
-      for (int j = 0; j < _ctrlsidx[i].size(); ++j){
-	// cout<<int(_ctrlsidx[i][j].x())<<" "<<int(_ctrlsidx[i][j].y())<<" "<<&_ctrlsidx[i]<<" "<<VMap<<endl;
-	ctrls.push_back( Point3D( 
-	  double( VMap[3*(int(_ctrlsidx[i][j].x())+int(_ctrlsidx[i][j].y())*m)]),
-	  double( VMap[3*(int(_ctrlsidx[i][j].x())+int(_ctrlsidx[i][j].y())*m)+1]), 
-	  double( VMap[3*(int(_ctrlsidx[i][j].x())+int(_ctrlsidx[i][j].y())*m)+2])  ) );
+	std::vector<Point3D>  ctrls;
+	for (int j = 0; j < _ctrlsidx[i].size(); ++j){
+		// cout<<int(_ctrlsidx[i][j].x())<<" "<<int(_ctrlsidx[i][j].y())<<\
+		//	  " "<<&_ctrlsidx[i]<<" "<<VMap<<endl;
+		ctrls.push_back( Point3D( double( VMap[ \
+												3 * (int(_ctrlsidx[i][j].x()) \
+												   + int(_ctrlsidx[i][j].y()) \
+												   * m ) ] )				  ,
+								  double( VMap[ \
+												3 * (int(_ctrlsidx[i][j].x()) \
+												   + int(_ctrlsidx[i][j].y()) \
+												   * m ) +1 ] )			  	  ,
+								  double( VMap[ \
+												3 * (int(_ctrlsidx[i][j].x()) \
+												   + int(_ctrlsidx[i][j].y()) \
+												   * m ) +2 ] )  ));
 	}
 
     cout<<"nb control pts before CGAL simplifyCloud:"<<ctrls.size()<<endl;
@@ -1038,16 +1190,18 @@ void SegmFrame::Get3DCtrlPts(){
 
     cout<<"nb control pts after CGAL simplifyCloud:"<<ctrls.size()<<endl;
 
-    _ctrls[i].insert(_ctrls[i].end(), ctrls.begin(), ctrls.end());// on ajoute la liste de control pts � celle existante, initialis� dans GetBbox (car on avait deja les 4 premiers control points)
+    /* on ajoute la liste de control pts � celle existante, initialisee
+     * dans GetBbox (car on avait deja les 4 premiers control points) */
+    _ctrls[i].insert(_ctrls[i].end(), ctrls.begin(), ctrls.end());
     ctrls.clear();
   }
 
   checkCudaErrors( cudaGraphicsUnmapResources( 1, _Resources_t) );
 
   free(VMap);
-
 }
 
+/*****************************************************************************/
 
 void SegmFrame::InitSurfs(){
 int blob_n = _blobsF.size();
@@ -1062,10 +1216,12 @@ printf("Getting surfaces for %d blobs\n", blob_n);
   }
 }
 
+/*****************************************************************************/
+
 void SegmFrame::ComputeSurfs(){
   
   int surf_n = _Surfs.size();
-  printf("Computing %d surfaces\n", surf_n);
+  printf("DEBUG: Computing %d surfaces\n", surf_n);
 
   string labelimage = "labelImage.png";
   string bumpimage = "bumpImage.png";
@@ -1073,59 +1229,82 @@ void SegmFrame::ComputeSurfs(){
 
   for(int i = 0; i< surf_n; i++){
     
-    printf("Surface #%d\n", i); fflush(stdout);
+    printf("DEBUG: Surface #%d\n", i);
 
 //  	 i = 1;//8 sphere // 2 chair //7 wall
     
-    puts("ImportCtrlPts");
+    puts("DEBUG: ImportCtrlPts");
     _Surfs[i]->ImportCtrlPts(& _ctrls[i], 0);
 
-    puts("Proj3Dpts");
+    puts("DEBUG: Proj3Dpts");
     _Surfs[i]->Proj3Dpts();
 
-    puts("GetEquations");
+    puts("DEBUG: GetEquations");
     _Surfs[i]->GetEquations();
 
-    puts("FillEdges");
+    puts("DEBUG: FillEdges");
     _Surfs[i]->FillEdges();
 
-    puts("g2omain");
+    puts("DEBUG: g2omain");
     _Surfs[i]->g2omain();
 
-    while(_Surfs[i]->findPointToDupli())
+    while( _Surfs[i]->findPointToDupli() )
     {	
-      _Surfs[i]->g2omain();
+    	//backup copy of the surface
+    	Surface * bak = new Surface(_Surfs[i]);
 
-      if(_Surfs[i]->OverlapTest() == 0){
-	_Surfs[i]->OptCopytoBuff();
-      }
-      else{
-	_Surfs[i]->RecoverFromBuff();
-	break;
-      }
+
+    	_Surfs[i]->g2omain();
+
+		if(_Surfs[i]->OverlapTest() == 0){	//overlap test
+			_Surfs[i]->OptCopytoBuff();
+			delete bak;
+		}
+		else{
+			puts("DEBUG: overlap: reverting to last state...");
+			/* commented out RecoverFromBuff due to empty _OptControlsIdx
+			 * leading to errors */
+			_Surfs[i]->RecoverFromBuff();
+
+			/* fix: use 'bak' instead
+			 * (and set _numLastInxDupli so we don't try duplicating this again)
+			 */
+	    	int before_revert_last = _Surfs[i]->_numLastInxDupli;
+			_Surfs[i] = bak;
+			_Surfs[i]->_numLastInxDupli = before_revert_last;
+			puts("DEBUG: successfully reverted");
+		break;
+		}
     }
-
+    puts("DEBUG: clearing buffer");
     _Surfs[i]->ClearOptBuff();
 
-  //	_Surfs[i]->g2omain(); // on peu le faire ou pas, si on le fait on met a jour les reultats de l'optimisation sauve dans le .g2o (apres un recover)
+    /* on peu le faire ou pas, si on le fait on met a jour les reultats de
+     * l'optimisation sauve dans le .g2o (apres un recover) */
+  //	_Surfs[i]->g2omain();
 
   //	_Surfs[i]->OptiResults();
 
+    puts("DEBUG: Calculating normal map size");
     _Surfs[i]->ShiftOptCtrlsIdx();
 
+    puts("Computing normal map");
     _Surfs[i]->ComputeImgIdx();
+
+    puts("Projecting normal map");
     _Surfs[i]->ComputeBumpImg(_blobsF[i]);
 
-     if(i==8){
+     if(false){ //can choose to display just for one object
  	    labelimage = "labelImg" + to_string(i) + extension ;
  	    _Surfs[i]->DisplayLabelImg(labelimage);
  	    bumpimage = "bumpImage" + to_string(i) + extension ;
  	    _Surfs[i]->DisplayBumpImg(bumpimage);
      }
 
+     puts("Drawing normal map");
     _Surfs[i]->DrawRecImg();
 
-    cvWaitKey(100);// Just to let the time to images to display
+    cvWaitKey(100);// leave time to cv::imshow to do its thing
   }
 
 //	}
@@ -1165,8 +1344,9 @@ void SegmFrame::ComputeSurfs(){
 //
 //
 //		_Surfs[i]->ClearOptBuff();
-//
-//		_Surfs[i]->g2omain(); // on peu le faire ou pas, si on le fait on met ajour les reultats de l'optimisation sauve dans le .g2o (apres un recover)
+// //on peu le faire ou pas, si on le fait on met ajour les reultats de
+// //l'optimisation sauve dans le .g2o (apres un recover)
+//		_Surfs[i]->g2omain();
 //		
 //	
 //
@@ -1184,47 +1364,65 @@ void SegmFrame::ComputeSurfs(){
 
 }
 
+/*****************************************************************************/
+
 void SegmFrame::Display3DBlobs(unsigned int NUM_VERTEX) {
 
-  glBegin(GL_POINTS);
-	  
-  glColor4ub(0,0,255, 255);
+	glBegin(GL_POINTS);
 
-  //glColor4ub(500*((NUM_VERTEX+2)*(NUM_VERTEX+1)),200*(NUM_VERTEX+1)*(NUM_VERTEX+5),300*(NUM_VERTEX+1), 180);
+	glColor4ub(0,0,255, 255);
 
-  for(int j = 0; j < _blobsF[NUM_VERTEX].size(); j++){
-  glVertex3d(_blobsF[NUM_VERTEX][j].x,_blobsF[NUM_VERTEX][j].y, _blobsF[NUM_VERTEX][j].z);
-  }
-  
-  glEnd();
+	//glColor4ub(500*((NUM_VERTEX+2)*(NUM_VERTEX+1)), \
+	//200*(NUM_VERTEX+1)*(NUM_VERTEX+5),300*(NUM_VERTEX+1), 180);
+
+	for(int j = 0; j < _blobsF[NUM_VERTEX].size(); j++){
+		glVertex3d(	_blobsF[NUM_VERTEX][j].x, \
+					_blobsF[NUM_VERTEX][j].y, \
+					_blobsF[NUM_VERTEX][j].z);
+	}
+	glEnd();
 }
+
+/*****************************************************************************/
 
 void SegmFrame::Display3DCtrlPts(int num) {
 
-  glPointSize(3);	
+	glPointSize(3);
 
-  glBegin(GL_POINTS);
+	glBegin(GL_POINTS);
 
-  glColor4ub(255,0,255, 255);
-  int i = num;
-  //for(int i = 0; i < _ctrls.size(); i++){
-    for(int j = 0; j < _ctrls[i].size(); j++){
-      if(j==0){glColor4ub(255,0,0, 255);}
-      if(j==1){glColor4ub(0,255,0, 255);}
-      if(j==2){glColor4ub(0,0,255, 255);}
-      if(j==3){glColor4ub(255,100,100, 255);}
-//	else{glColor4ub(255,0,255, 255);}
-      glVertex3d(_ctrls[i][j][0],_ctrls[i][j][1], _ctrls[i][j][2]);
-    }
-  //}
+	int i = num;
+	//for(int i = 0; i < _ctrls.size(); i++){
+	if (!_ctrls[i].size())
+		printf("WARNING: ctrl pt array is empty for blob #%d\n",i);
+	else {
+		for(int j = 0; j < _ctrls[i].size(); j++){
+			switch(j) {
+			case 0:
+				glColor4ub(255,0,0, 255);
+				break;
+			case 1:
+				glColor4ub(0,255,0, 255);
+				break;
+			case 2:
+				glColor4ub(0,0,255, 255);
+				break;
+			case 3:
+				glColor4ub(255,100,100, 255);
+				break;
+			default:
+				glColor4ub(255,0,255, 255);
+				break;
+			}
+		  glVertex3d(_ctrls[i][j][0],_ctrls[i][j][1], _ctrls[i][j][2]);
+		}
+	}
+	glEnd();
 
-  glEnd();
-
-  glPointSize(1);
+	glPointSize(1);
 }
 
-
-
+/*****************************************************************************/
 
 void SegmFrame::DisplayEigVect(unsigned int NUM_VERTEX){
 
@@ -1232,24 +1430,36 @@ void SegmFrame::DisplayEigVect(unsigned int NUM_VERTEX){
     
     glLineWidth( 3 );
     glColor4ub(255,255,0, 180);//x' jaune
-    glVertex3d(_eigenVecs[NUM_VERTEX][3].x ,_eigenVecs[NUM_VERTEX][3].y,_eigenVecs[NUM_VERTEX][3].z);
-    glVertex3d(_eigenVecs[NUM_VERTEX][0].x + _eigenVecs[NUM_VERTEX][3].x,_eigenVecs[NUM_VERTEX][0].y + _eigenVecs[NUM_VERTEX][3].y,_eigenVecs[NUM_VERTEX][0].z + _eigenVecs[NUM_VERTEX][3].z); // min x y z
+    glVertex3d(	_eigenVecs[NUM_VERTEX][3].x, \
+    			_eigenVecs[NUM_VERTEX][3].y, \
+				_eigenVecs[NUM_VERTEX][3].z);
+    // min x y z
+    glVertex3d(	_eigenVecs[NUM_VERTEX][0].x + _eigenVecs[NUM_VERTEX][3].x, \
+    			_eigenVecs[NUM_VERTEX][0].y + _eigenVecs[NUM_VERTEX][3].y, \
+				_eigenVecs[NUM_VERTEX][0].z + _eigenVecs[NUM_VERTEX][3].z);
 
     glColor4ub(0,255,255, 180);//y' cyan
-    glVertex3d(_eigenVecs[NUM_VERTEX][3].x ,_eigenVecs[NUM_VERTEX][3].y,_eigenVecs[NUM_VERTEX][3].z);
-    glVertex3d(_eigenVecs[NUM_VERTEX][1].x + _eigenVecs[NUM_VERTEX][3].x ,_eigenVecs[NUM_VERTEX][1].y + _eigenVecs[NUM_VERTEX][3].y,_eigenVecs[NUM_VERTEX][1].z + _eigenVecs[NUM_VERTEX][3].z); // min x y z
+    glVertex3d(	_eigenVecs[NUM_VERTEX][3].x ,\
+    			_eigenVecs[NUM_VERTEX][3].y,\
+				_eigenVecs[NUM_VERTEX][3].z);
+    // min x y z
+    glVertex3d(	_eigenVecs[NUM_VERTEX][1].x + _eigenVecs[NUM_VERTEX][3].x,\
+    			_eigenVecs[NUM_VERTEX][1].y + _eigenVecs[NUM_VERTEX][3].y,\
+				_eigenVecs[NUM_VERTEX][1].z + _eigenVecs[NUM_VERTEX][3].z);
 
     glColor4ub(255,0,255, 180);//z' violet
-    glVertex3d(_eigenVecs[NUM_VERTEX][3].x ,_eigenVecs[NUM_VERTEX][3].y,_eigenVecs[NUM_VERTEX][3].z);
-    glVertex3d(_eigenVecs[NUM_VERTEX][2].x + _eigenVecs[NUM_VERTEX][3].x ,_eigenVecs[NUM_VERTEX][2].y + _eigenVecs[NUM_VERTEX][3].y,_eigenVecs[NUM_VERTEX][2].z + _eigenVecs[NUM_VERTEX][3].z); // min x y z
+    glVertex3d(	_eigenVecs[NUM_VERTEX][3].x ,\
+    		_eigenVecs[NUM_VERTEX][3].y,\
+			_eigenVecs[NUM_VERTEX][3].z);
+    // min x y z
+    glVertex3d(	_eigenVecs[NUM_VERTEX][2].x + _eigenVecs[NUM_VERTEX][3].x,	\
+    			_eigenVecs[NUM_VERTEX][2].y + _eigenVecs[NUM_VERTEX][3].y,	\
+				_eigenVecs[NUM_VERTEX][2].z + _eigenVecs[NUM_VERTEX][3].z);
       
   glEnd();
 }
 
-
-
-
-
+/*****************************************************************************/
 
 void SegmFrame::DisplayBbox(){
 
@@ -1294,6 +1504,7 @@ void SegmFrame::DisplayBbox(){
 
 }
 
+/*****************************************************************************/
 
 void DrawAxis0(void){
 
@@ -1333,3 +1544,5 @@ void DrawAxis0(void){
   glDisable(GL_POINT_SMOOTH);
 
 }
+
+/*****************************************************************************/

@@ -324,18 +324,22 @@ void display(void) {
 	//Debut du Dessin :
 	// axe x horizontal, axe y vertical, axe z profondeur
 
-	if(DISPLAY_FRAME){frame->Draw(1);}
+	if(DISPLAY_FRAME)
+		frame->Draw(1);
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	if(DISPLAY_ELMTS){	frame->DisplayEigVect(NUM_VERTEX);}
+	if(DISPLAY_ELMTS)
+		frame->DisplayEigVect(NUM_VERTEX);
 
-	if(DISPLAY_BLOBS){frame->Display3DBlobs(NUM_VERTEX);}	
+	if(DISPLAY_BLOBS)
+		frame->Display3DBlobs(NUM_VERTEX);
 
 	DrawAxis0();// Red : x, Green : y, Blue : z
 
-	if(DISPLAY_CONTROLS){frame->Display3DCtrlPts(NUM_VERTEX);}
+	if(DISPLAY_CONTROLS)
+		frame->Display3DCtrlPts(NUM_VERTEX);
 
 
 	for(int num=0; num<frame->_Surfs.size(); num++){
@@ -343,14 +347,17 @@ void display(void) {
 
 	//	cout<<"display surf n "<<num<<endl;
 
-		if(DISPLAY_SURFS){frame->_Surfs[num]->DisplaySurfsPlus(0);}
+		if(DISPLAY_SURFS)
+			frame->_Surfs[num]->DisplaySurfsPlus(0);
 
-		if(DISPLAY_REC){frame->_Surfs[num]->DisplayRecImg(0);}
+		if(DISPLAY_REC)
+			frame->_Surfs[num]->DisplayRecImg(0);
 
 		//if(DISPLAY_REC_PLAN){frame->_Surfs[num+1]->DisplayRecImg(1);}
 	}
 
-	if(DISPLAY_BB){frame->DisplayBbox();}
+	if(DISPLAY_BB)
+		frame->DisplayBbox();
 
 	// Fin du dessin
 	

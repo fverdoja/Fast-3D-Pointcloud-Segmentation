@@ -51,7 +51,7 @@ using namespace cv;
 #define WIDTH 640
 #define HEIGHT 480
 
-#define MIN_SIZE_PLAN 2000 //min nb of points in a blob
+#define MIN_SIZE_PLAN 3000 //min nb of points in a blob
 
 
 #define DISPLAY_FRAME_IN true

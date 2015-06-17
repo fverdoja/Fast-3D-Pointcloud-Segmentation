@@ -5,9 +5,9 @@
 #define lowInfo 1.0
 
 
-/***************************************************************************************/
-/*************************** Annex Functions Used only in surface.cpp **************************/
-/***************************************************************************************/
+/*****************************************************************************/
+/*************************** Annex Functions Used only in surface.cpp ********/
+/*****************************************************************************/
 
 void cross(double res[3], const double A[3], const double B[3]) {
 	res[0] =   A[1]*B[2] - A[2]*B[1];
@@ -43,7 +43,9 @@ void diff(double* res,const int A[2], const int B[2]) {
 
 //double dist_3d(double A[3], double B[3]){
 double dist_3d(const double * A, const double * B){
-	double val = sqrt( (A[0]-B[0])*(A[0]-B[0]) + (A[1]-B[1])*(A[1]-B[1]) + (A[2]-B[2])*(A[2]-B[2]) );
+	double val = sqrt( 		(A[0]-B[0])*(A[0]-B[0]) \
+						  + (A[1]-B[1])*(A[1]-B[1]) \
+						  + (A[2]-B[2])*(A[2]-B[2]) );
 	return val;
 }
 
@@ -68,8 +70,8 @@ void normalize(double A[3]) {
     A[2] = z*inval;
   }
   else
-	  puts("Error: invalid norm! (Surface.cpp:normalize())");
-
+	  puts("DEBUG: null vector input (Surface.cpp:normalize())");
+  	  //do nothing (null vector)
 //  printf("x=%lf, y=%lf, z=%lf, val=%lf\n",x,y,z,val);
 }
 
@@ -106,10 +108,12 @@ void base_3d(const double * V1, const double * V2, const double * V3, double V2t
 	double y1 = V1[1], y2 = V2[1] , y3 = V3[1] ;
 	double z1 = V1[2], z2 = V2[2] , z3 = V3[2] ;
 
-	V2toB[0] = ( (x2-x1)*(x3-x1)+(y2-y1)*(y3-y1)+(z2-z1)*(z3-z1) )*(x3-x1) / ( (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)+(z3-z1)*(z3-z1) )+x1-x2 ;
-	V2toB[1] = ( (x2-x1)*(x3-x1)+(y2-y1)*(y3-y1)+(z2-z1)*(z3-z1) )*(y3-y1) / ( (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)+(z3-z1)*(z3-z1) )+y1-y2 ;
-	V2toB[2] = ( (x2-x1)*(x3-x1)+(y2-y1)*(y3-y1)+(z2-z1)*(z3-z1) )*(z3-z1) / ( (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)+(z3-z1)*(z3-z1) )+z1-z2 ;
-	
+	V2toB[0] = ( (x2-x1)*(x3-x1)+(y2-y1)*(y3-y1)+(z2-z1)*(z3-z1) )*(x3-x1) \
+			 / ( (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)+(z3-z1)*(z3-z1) )+x1-x2 ;
+	V2toB[1] = ( (x2-x1)*(x3-x1)+(y2-y1)*(y3-y1)+(z2-z1)*(z3-z1) )*(y3-y1) \
+			 / ( (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)+(z3-z1)*(z3-z1) )+y1-y2 ;
+	V2toB[2] = ( (x2-x1)*(x3-x1)+(y2-y1)*(y3-y1)+(z2-z1)*(z3-z1) )*(z3-z1) \
+			 / ( (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)+(z3-z1)*(z3-z1) )+z1-z2 ;
 }
 
 
@@ -118,9 +122,10 @@ void base_2d(const double * V1,  const double * V2, const double * V3, double V2
 	double x1 = V1[0], x2 = V2[0] , x3 = V3[0] ;
 	double y1 = V1[1], y2 = V2[1] , y3 = V3[1] ;
 
-	V2toB[0] = ((x2-x1)*(x3-x1)+(y2-y1)*(y3-y1))*(x3-x1)/((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1))+x1-x2 ;
-	V2toB[1] = ((x2-x1)*(x3-x1)+(y2-y1)*(y3-y1))*(y3-y1)/((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1))+y1-y2 ;
-
+	V2toB[0] =    ((x2-x1)*(x3-x1)+(y2-y1)*(y3-y1))*(x3-x1) \
+				/ ((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1))+x1-x2 ;
+	V2toB[1] =    ((x2-x1)*(x3-x1)+(y2-y1)*(y3-y1))*(y3-y1) \
+			    / ((x3-x1)*(x3-x1)+(y3-y1)*(y3-y1))+y1-y2 ;
 }
 
 
@@ -147,11 +152,13 @@ void writeInt2DTabToFile(int** m, int row, int cols ,const char* filename)
 
 
 
-/***************************************************************************************/
-/*************************** Methods for the class Surface **************************/
-/***************************************************************************************/
+/*****************************************************************************/
+/*************************** Methods for the class Surface *******************/
+/*****************************************************************************/
 
-void Surface::ImportCtrlPts(std::vector<Point3D> * ctrls, int fourctrl){ //  if fourctrl = 1 we copy only the four first control point (simulation of projection on a plane).
+/*  if fourctrl = 1 we copy only the four first control points
+ * (simulation of projection on a plane). */
+void Surface::ImportCtrlPts(std::vector<Point3D> * ctrls, int fourctrl){
 
 	if(fourctrl ==0){
 		for(int i = 0; i<ctrls->size() ; i++){
@@ -164,19 +171,21 @@ void Surface::ImportCtrlPts(std::vector<Point3D> * ctrls, int fourctrl){ //  if 
 			_Controls.push_back(Point3D((*ctrls)[i])) ;
 		}
 	}
-
 }
+
+/*****************************************************************************/
 
 void Surface::ShowCtrlPts(){
 
 	cout<<"show ctrl pts"<<endl;
 	for(int i = 0; i<_Controls.size() ; i++){
-
-		cout<<_Controls[i].x()<<" "<<_Controls[i].y()<<" "<<_Controls[i].z()<<endl;
+		cout<<_Controls[i].x() << " " << _Controls[i].y() << " " \
+				<<_Controls[i].z()<<endl;
 	}
 	cout<<endl;
-
 }
+
+/*****************************************************************************/
 
 void Surface::Proj3Dpts(){
   
@@ -212,6 +221,7 @@ void Surface::Proj3Dpts(){
 	  puts("Less than 3 control points: cannot triangulate");
 }
 
+/*****************************************************************************/
 
 void Surface::GetEquations() {
 
@@ -229,7 +239,8 @@ void Surface::GetEquations() {
    * It may be interesting to consider this algorithm to improve performance.
    */
 
-  for(std::vector<Point2D>::iterator iter = _ControlsIdx.begin(); iter != _ControlsIdx.end(); iter++) {
+  for(	std::vector<Point2D>::iterator iter = _ControlsIdx.begin(); \
+		iter != _ControlsIdx.end(); iter++) {
 	  cout << *iter;
 	  printf("\t 0x%08x\n", &*iter);
 	  npt++;
@@ -239,17 +250,22 @@ void Surface::GetEquations() {
 
   // sanity checks
   printf("Inserted %d points into the triangulation\n", npt);
-  printf("Triangulation has %lu faces and %lu vertices\n",dt.number_of_faces(),dt.number_of_vertices());
+  printf("Triangulation has %lu faces and %lu vertices\n", \
+		  dt.number_of_faces(),dt.number_of_vertices());
   //dt.is_valid() ? puts("Valid triangulation") : puts("Invalid triangulation");
-  this->_ControlsIdx.begin() == this->_ControlsIdx.end() ? puts("Empty control pt set") : puts("Nonempty control pt set");
-  dt.finite_faces_begin() == dt.finite_faces_end() ? puts("Empty triangulation") : puts("Nonempty triangulation");
+  this->_ControlsIdx.begin() == this->_ControlsIdx.end() ? \
+		  puts("Empty control pt set") : puts("Nonempty control pt set");
+  dt.finite_faces_begin() == dt.finite_faces_end() ? \
+		  puts("Empty triangulation") : puts("Nonempty triangulation");
 
   //iterate through the faces
   
   Delaunay::Finite_faces_iterator it;
   unsigned int i;
   
-  for (	it = dt.finite_faces_begin(), i=0; it != dt.finite_faces_end(); ++it, ++i) // on balaye tous les triangle de delaunay trouves
+  for (	it = dt.finite_faces_begin(), i=0; \
+  	  	it != dt.finite_faces_end(); \
+  	  	++it, ++i) // on balaye tous les triangle de delaunay trouves
   {
     cout << "Face #" << i << ": " << dt.triangle(it)  << endl;
 
@@ -266,16 +282,18 @@ void Surface::GetEquations() {
 
     for (int k = 0; k < 3; k++)
     {
-      ctrlsidx[k][0] = int(dt.triangle(it).vertex(k).x());// On recupere les index 2D des points des triangles
+      // On recupere les index 2D des points des triangles
+      ctrlsidx[k][0] = int(dt.triangle(it).vertex(k).x());
       ctrlsidx[k][1] = int(dt.triangle(it).vertex(k).y());
       int idx = -1;
-      for (int l = 0; l < int(_ControlsIdx.size()); l++) // on cherche ici les points 3D correspondants
-      {
-	if (dt.triangle(it).vertex(k).x() == _ControlsIdx[l].x() && dt.triangle(it).vertex(k).y() == _ControlsIdx[l].y()) 
-	{
-	  idx = l;
-	  break;
-	}
+      // on cherche ici les points 3D correspondants
+      for (int l = 0; l < int(_ControlsIdx.size()); l++) {
+		if (dt.triangle(it).vertex(k).x() == _ControlsIdx[l].x() \
+				&& dt.triangle(it).vertex(k).y() == _ControlsIdx[l].y())
+		{
+		  idx = l;
+		  break;
+		}
       }
       ctrls[k][0] = _Controls[idx].x();// on recupere les points 3D
       ctrls[k][1] = _Controls[idx].y();
@@ -283,9 +301,11 @@ void Surface::GetEquations() {
       
       idxPos[k] = idx;
 
-      cout << "Vertex " << k << ": " << ctrls[k][0] << " " << ctrls[k][1] <<  " " << ctrls[k][2] << endl;
+      cout << "Vertex " << k << ": " << ctrls[k][0] << " "  \
+    		  << ctrls[k][1] <<  " " << ctrls[k][2] << endl;
     }
-    cout << "index " << idxPos[0] << ", " << idxPos[1] << ", " << idxPos[2] << endl;
+    cout << "index " << idxPos[0] << ", " << idxPos[1] << ", " \
+    		<< idxPos[2] << endl;
 
     printf("Computed %d Delaunay triangles\n",i);
 
@@ -297,10 +317,10 @@ void Surface::GetEquations() {
     normalize(normal);
     dist = prod_scal(ctrls[0], normal);
     bool border[3] = {0, 0, 0};
-    _Equations.push_back(Equations(normal, dist, /*ctrls, ctrlsidx, */idxPos, border));
+    _Equations.push_back( \
+    		Equations(normal, dist, /*ctrls, ctrlsidx, */idxPos, border));
 
     }
-
 }
 
 
@@ -341,7 +361,6 @@ void Surface::FillEdges() {
 
 
 	}
-
 }
 
 void Surface::AddEdge(int i, int j, int k, Eigen::Matrix2d& inf){
@@ -368,7 +387,6 @@ void Surface::AddEdge(int i, int j, int k, Eigen::Matrix2d& inf){
 
 void Surface::g2omain()
 {
-
   _OptControlsIdx.clear();
 
   init_tutorial_slam2d_types();
@@ -403,10 +421,7 @@ void Surface::g2omain()
 	indexVertx->setEstimate( GetControlsIdxValue(i) );
     optimizer.addVertex(indexVertx);
   }
-
   puts("done.");
-
-
 
   // second add the odometry constraints
 
@@ -430,9 +445,7 @@ void Surface::g2omain()
 
     optimizer.addEdge(odometry);
   }
-
   puts("done.");
-
 
   /*********************************************************************************
    * optimization
@@ -456,7 +469,6 @@ void Surface::g2omain()
 
   optimizer.save("tutorial_beforebis.g2o");
 
-
   cerr << "Optimizing" << endl;
   optimizer.initializeOptimization();
   optimizer.optimize(10);
@@ -471,10 +483,6 @@ void Surface::g2omain()
   AddOptIdx(Point2D(Optimized2dPt[0],Optimized2dPt[1]));
 
   }
-
-
-
-
   // freeing the graph memory
   optimizer.clear();
 
@@ -482,50 +490,38 @@ void Surface::g2omain()
   Factory::destroy();
   OptimizationAlgorithmFactory::destroy();
   HyperGraphActionLibrary::destroy();
-
   }
 
 
-  void Surface::OptiResults(){
+void Surface::OptiResults(){
 
 	double distance = 0, rdist = 0, error=0, errorini=0, errorinisansbounding = 0, 
 		errorsansbounding=0, fdist=0, mhigh = 0, rhigh=0, fhigh = 0;
   
 
-	for(int i=0; i<_Controls.size() ; i++)
-
-		{
-			cout<<"Vertex n "<<i<<" :"<<_Controls[i].x()<<", "<<_Controls[i].y()<<", "<<_Controls[i].z()<<endl;
-
-		}
+	for(int i=0; i<_Controls.size() ; i++) {
+		cout<<"Vertex n "<<i<<" :"<<_Controls[i].x()<<", "<<_Controls[i].y()<<", "<<_Controls[i].z()<<endl;
+	}
 
   // Displaying the distance and error:
 
   /***/   ofstream fichier("tutorial_after.g2o", ios::app); 
   
-  if(fichier)
-  {
+  if(fichier) {
 	fichier <<endl; 
   
 	fichier<<"initial 3D Vertex : "<<endl;
 
-	for(int i=0; i<_Controls.size() ; i++)
-
-		{
+	for(int i=0; i<_Controls.size() ; i++) {
 			fichier<<"Vertex n "<<i<<" :"<<_Controls[i].x()<<", "<<_Controls[i].y()<<", "<<_Controls[i].z()<<endl;
-
 		}
-   
   
     fichier <<endl; 
 	fichier<<"Displaying the distances: "<<endl;
 
   }
-
-
   for(int i=0 ; i < int(_EdgesMeasures.size()) ; i++)
   {
-
 	int idx[3] ;
 	int idx3d[3] ;
 
@@ -558,9 +554,7 @@ void Surface::g2omain()
 	if(fichier){
 	fichier << "dist " << idx[0] <<"-"<< idx[1] <<" :   m : "<<distance<<" ; r : "<<rdist<<" ; f : "<<fdist<<endl;
 	}
-
   }
-
 	if(fichier){
 		fichier<<endl;
 		fichier<<"initial error : "<<errorini<<endl;
@@ -569,14 +563,12 @@ void Surface::g2omain()
 		//fichier<<"total error sans bounding : "<<errorsansbounding<<endl;
 		fichier<<endl;
 	}
-
 	double V1toB[3];
 	double V1toBidx[2];
 	double V1toBidxOpti[2];
 
     for(int i=0 ; i < int(_EdgesMeasures.size()) ; i++)
   {
-
 	int idx[3] ;
 	int idx3d[3] ;
 
@@ -596,7 +588,6 @@ void Surface::g2omain()
 	fichier << "high " << idx[0] <<"-"<< idx[1]<<"-"<< idx[2] <<" :   m : "<<mhigh<<" ; r : "<<rhigh<<" ; f : "<<fhigh<<endl; 
 	}
  }
-
 
   //displaying areas :
 
@@ -676,9 +667,7 @@ void Surface::g2omain()
   if(fichier){
 		fichier<<"aire tri n "<<i<<", "<<idx[0]<<" "<<idx[1]<<" "<<idx[2]<<" "<<" :  m : "<<aireM<<", r : "<<aireR<<", f : "<<aireF<<"  ,  ratio m : "<<ratioM<<"  ,  ratio f : "<<ratioF<<"  ,  normal.z : "<<nz<<endl;
   }
-
   }
-
    if(fichier){
   		fichier<<"erreur aire totale : "<<aireerror<<endl;
 		fichier<<"erreur moyenne : "<<aireerror/_Equations.size()<<endl;
@@ -687,9 +676,7 @@ void Surface::g2omain()
 		fichier<<"moyenne ratio m : "<<SratioM/_Equations.size()<<endl;
 		fichier<<"min ratio m : "<<ratiomin<<endl;
 		fichier<<"moyenne ratio f : "<<SratioF/_Equations.size()<<endl;
-
    }
-
 }
 
 int ptDupliTest(int pt, int nEdgemax, vector<edgeResult> EdgesResults){
@@ -705,7 +692,6 @@ int ptDupliTest(int pt, int nEdgemax, vector<edgeResult> EdgesResults){
 		 		break;			
 			}
 	}
-
 	return numE;
 }
 
@@ -716,7 +702,6 @@ int nbBordsTest(int numTri,vector<edgeResult> EdgesResults){
 
 		if (EdgesResults[i].numTri == EdgesResults[numTri].numTri) result++;
 	}
-
 	return result;
 }
 
@@ -728,7 +713,7 @@ bool Surface::findPointToDupli(){
 	int idx[3] = {-1, -1, -1} ;
 	double V1toBidxOpti[2];
 	double V1toB[3];
-	double maxf = 0.0;
+	double maxf = 0.0; //max criterion
 	int nEdgemax = -1;
 	int j = 0, l = 0;
 
@@ -736,64 +721,81 @@ bool Surface::findPointToDupli(){
 
 		if(TriangleBorderTest(i)){
 			
-			idx[0] = _Equations[i]._idxPos[0]; 	idx[1] = _Equations[i]._idxPos[1]; 	idx[2] = _Equations[i]._idxPos[2]; 
+			idx[0] = _Equations[i]._idxPos[0];
+			idx[1] = _Equations[i]._idxPos[1];
+			idx[2] = _Equations[i]._idxPos[2];
 
-			for(int k = 0; k<3 ; k++){// k - j - l 3 position dans les pts du triangles
+			// k - j - l 3 position dans les pts du triangles
+			for(int k = 0; k<3 ; k++){
 				
 				if(_Equations[i]._border[k]){
 
-						edgeRes.numTri = i;
+					edgeRes.numTri = i;
 
-						edgeRes.idxPos[0] = idx[k];
+					edgeRes.idxPos[0] = idx[k];
 
-						if(k==0) {j=1; l=2;}
-						if(k==1) {j=2; l=0;}	
-						if(k==2) {j=0; l=1;}
+					if(k==0) {j=1; l=2;}
+					if(k==1) {j=2; l=0;}
+					if(k==2) {j=0; l=1;}
 
-						edgeRes.idxPos[1] = idx[j];
+					edgeRes.idxPos[1] = idx[j];
 
-						//cout<<k<<" , "<<j<<endl;
-						
-						edgeRes.res[0] = sqrt( pow(GetOptCtrlsIdx(idx[k])[0]-GetOptCtrlsIdx(idx[j])[0],2) + pow(GetOptCtrlsIdx(idx[k])[1]-GetOptCtrlsIdx(idx[j])[1],2) );
-						edgeRes.res[1] = _k * sqrt( pow(GetCtrls(idx[k])[0]-GetCtrls(idx[j])[0],2) + pow(GetCtrls(idx[k])[1]-GetCtrls(idx[j])[1],2) + pow(GetCtrls(idx[k])[2]-GetCtrls(idx[j])[2],2) );
-						
-						base_2d(GetOptCtrlsIdx(idx[j]), GetOptCtrlsIdx(idx[l]), GetOptCtrlsIdx(idx[k]), V1toBidxOpti); 
-						base_3d(GetCtrls(idx[j]), GetCtrls(idx[l]), GetCtrls(idx[k]), V1toB);
-						edgeRes.res[2]  =  sqrt(V1toBidxOpti[0]*V1toBidxOpti[0] + V1toBidxOpti[1]*V1toBidxOpti[1]) ;
-						edgeRes.res[3]  = double(_k) * sqrt( V1toB[0]*V1toB[0]+ V1toB[1]*V1toB[1] + V1toB[2]*V1toB[2] );
-						edgeRes.res[4]  = double(edgeRes.res[0]/edgeRes.res[1]) + double(edgeRes.res[3]/edgeRes.res[2]);
+					//cout<<k<<" , "<<j<<endl;
 
-						if(edgeRes.res[4]> maxf)  
-						{
-							maxf = edgeRes.res[4]; 
-							nEdgemax = EdgesResults.size();
-						}
+					edgeRes.res[0] = sqrt(								\
+						pow( GetOptCtrlsIdx(idx[k])[0] - 				\
+							 GetOptCtrlsIdx(idx[j])[0]  ,2)  			\
+				      + pow( GetOptCtrlsIdx(idx[k])[1] - 				\
+					    	 GetOptCtrlsIdx(idx[j])[1]  ,2)	 )			;
+					edgeRes.res[1] = _k * sqrt( 							  \
+						pow( GetCtrls( idx[k])[0] - GetCtrls(idx[j])[0], 2) + \
+						pow( GetCtrls( idx[k])[1] - GetCtrls(idx[j])[1], 2) + \
+						pow( GetCtrls( idx[k])[2] - GetCtrls(idx[j])[2], 2) ) ;
 
-						
-						EdgesResults.push_back(edgeRes);
+					base_2d(GetOptCtrlsIdx(idx[j]),  \
+							GetOptCtrlsIdx(idx[l]),  \
+							GetOptCtrlsIdx(idx[k]), V1toBidxOpti) ;
+					base_3d( GetCtrls(idx[j]), \
+							 GetCtrls(idx[l]), \
+							 GetCtrls(idx[k]), V1toB);
+					edgeRes.res[2]  =  sqrt( \
+						V1toBidxOpti[0] * V1toBidxOpti[0] \
+					  + V1toBidxOpti[1] * V1toBidxOpti[1] ) ;
+					edgeRes.res[3]  = double(_k) * sqrt( \
+						V1toB[0]*V1toB[0] \
+					  + V1toB[1]*V1toB[1] \
+					  + V1toB[2]*V1toB[2] );
+					edgeRes.res[4]  = double(edgeRes.res[0]/edgeRes.res[1]) \
+									+ double(edgeRes.res[3]/edgeRes.res[2]) ;
 
+					if(edgeRes.res[4] > maxf) {
+						maxf = edgeRes.res[4];
+						nEdgemax = EdgesResults.size();
+					}
+					EdgesResults.push_back(edgeRes);
 				}
 			}
 		}
-	}
-
+	} //end for
 
 	//cout<<"EdgesResults "<<nEdgemax<<endl;
-
 	//for(int i=0; i<EdgesResults.size() ; i++){
-
 	//	cout<<"numTri : "<<EdgesResults[i].numTri<<",  "<<EdgesResults[i].idxPos[0] <<"  "<<EdgesResults[i].idxPos[1] <<" , dopt : "<<EdgesResults[i].res[0] <<" , dreal : "<<EdgesResults[i].res[1] <<" , hopt : "<<EdgesResults[i].res[2] <<" , hreal : "<<EdgesResults[i].res[3] <<" , f : "<<EdgesResults[i].res[4]  <<endl;
-
 	//}
 
-
-	if(maxf>2.1 && double(EdgesResults[nEdgemax].res[0]/EdgesResults[nEdgemax].res[1])>1 && double(EdgesResults[nEdgemax].res[3]/EdgesResults[nEdgemax].res[2])>1 ){
-
-		// Les deux points sont ils connect� � daute triangle au bord ?
+	if( maxf > 2.1 \
+	  && double( \
+			  EdgesResults[nEdgemax].res[0] / EdgesResults[nEdgemax].res[1])>1 \
+	  && double( \
+			  EdgesResults[nEdgemax].res[3] / EdgesResults[nEdgemax].res[2])>1 )
+	{
+		// Les deux points sont ils connectes a d'autres triangles au bord ?
 		int pt1 = EdgesResults[nEdgemax].idxPos[0];
 		int pt2 = EdgesResults[nEdgemax].idxPos[1];
 		int pt = -1;
-		int numE1 = ptDupliTest(pt1, nEdgemax, EdgesResults);//permet de savoir si le point pt1 apparait dans un autre triangle qui a un edge au bord
+		/* permet de savoir si le point pt1 apparait dans un autre triangle qui
+		 * a un edge au bord */
+		int numE1 = ptDupliTest(pt1, nEdgemax, EdgesResults);
 		int numE2 = ptDupliTest(pt2, nEdgemax, EdgesResults);
 		double f1 = 0 ; if(numE1 != -1){ f1 = EdgesResults[numE1].res[4];}
 		double f2 = 0 ; if(numE2 != -1){ f2 = EdgesResults[numE2].res[4];}
@@ -815,25 +817,29 @@ bool Surface::findPointToDupli(){
 	
 	
 		//} // cas ou on pourrait dedoubler avec un autre triangle... 
-		//					  // Mais si on dedouble que ce traingle il ne lui restera qu'un pt accroch� au graphe
+		//	// Mais si on dedouble que ce traingle il ne lui restera qu'un pt accroch� au graphe
 
 		//if(numE1 == -1 && numE2 != -1){ 
 	
 	
-		//} // de m�me
+		//} // de meme
 
-		//// is numE1 ou numE2 = 0 on pourrai imaginer faire la procedure avec le suivant triangle qui a fmax>2.1 et tester si les deux nouveaux E1 et E2 sont != -1
+		//// if numE1 ou numE2 = 0 on pourrai imaginer faire la procedure avec le suivant triangle qui a fmax>2.1 et tester si les deux nouveaux E1 et E2 sont != -1
 
 		if(numE1 != -1 && numE2 != -1 && nbBordsTest(nEdgemax, EdgesResults) < 2) /*pas sur que cette derniere condition soit utile vu que l'on regarde si numE1/2 existe*/ 
 																					// duplicable, il faut choisir le point
 		{
 	//		cout<<"nbBordsTest : "<<nbBordsTest(numE1, EdgesResults)<<" "<<nbBordsTest(numE2, EdgesResults)<<endl;
 			if(nbBordsTest(numE1, EdgesResults) < 2 && nbBordsTest(numE2, EdgesResults) < 2){//we also check of the barder triangle have less than 2 edges on the border
-				if(f2>f1) pt = pt2; //we compare result of the fonctions f on the two border, 
-				else pt = pt1;
+				if(f2>f1)
+					pt = pt2; //we compare result of the fonctions f on the two border,
+				else
+					pt = pt1;
 			}
-			if(!(nbBordsTest(numE1, EdgesResults) < 2)  && nbBordsTest(numE2, EdgesResults) < 2 ) pt = pt2; //we compare result of the fonctions f on the two border, 
-			if(nbBordsTest(numE1, EdgesResults) < 2  && !(nbBordsTest(numE2, EdgesResults) < 2) ) pt = pt1;//we also check of the barder triangle have less than 2 edges on the border
+			if(!(nbBordsTest(numE1, EdgesResults) < 2)  && nbBordsTest(numE2, EdgesResults) < 2 )
+				pt = pt2; //we compare result of the fonctions f on the two border,
+			if(nbBordsTest(numE1, EdgesResults) < 2  && !(nbBordsTest(numE2, EdgesResults) < 2) )
+				pt = pt1;//we also check if the border triangle has fewer than 2 edges on the border
 		}
 
 		if ( pt != -1 ){
@@ -843,7 +849,6 @@ bool Surface::findPointToDupli(){
 			return true;
 		}
 	}
-
 	return false;
 }
 
@@ -855,7 +860,7 @@ bool twoIdxMatch(int idx0, int idx1, int idxref0, int idxref1){
 		return true;
 
 	else 
-	return false;
+		return false;
 }
 
 
@@ -902,31 +907,29 @@ bool Surface::TriangleBorderTest(int numTri){
 
 	if(test2==0){_Equations[numTri]._border[2] = 1;}
 
-
 	if( (test0==0) || (test1==0) || (test2==0) )
-	return true;
+		return true;
 
-	else return false;
+	else
+		return false;
 }
 
 
 void Surface::dupliIndex(int numDupli, int numTri){
 
-_ControlsIdx.push_back(_ControlsIdx[numDupli]);
-_Controls.push_back(_Controls[numDupli]);
+	_ControlsIdx.push_back(_ControlsIdx[numDupli]);
+	_Controls.push_back(_Controls[numDupli]);
 
+	for(int k=0; k<3; k++){
+		if(_EdgesMeasures[3*numTri+k].to == numDupli){ _EdgesMeasures[3*numTri+k].to = _ControlsIdx.size()-1 ;}
+		if(_EdgesMeasures[3*numTri+k].from == numDupli){ _EdgesMeasures[3*numTri+k].from = _ControlsIdx.size()-1 ;}
+		if(_EdgesMeasures[3*numTri+k].last == numDupli){ _EdgesMeasures[3*numTri+k].last = _ControlsIdx.size()-1 ;}
+	}
 
-for(int k=0; k<3; k++){
-	if(_EdgesMeasures[3*numTri+k].to == numDupli){ _EdgesMeasures[3*numTri+k].to = _ControlsIdx.size()-1 ;}
-	if(_EdgesMeasures[3*numTri+k].from == numDupli){ _EdgesMeasures[3*numTri+k].from = _ControlsIdx.size()-1 ;}
-	if(_EdgesMeasures[3*numTri+k].last == numDupli){ _EdgesMeasures[3*numTri+k].last = _ControlsIdx.size()-1 ;}
-}
-
-
-for(int k=0; k<3; k++){
-	if(_Equations[numTri]._idxPos[k] == numDupli){ _Equations[numTri]._idxPos[k] = _ControlsIdx.size()-1 ;}
-}
-
+	for(int k=0; k<3; k++){
+		if(_Equations[numTri]._idxPos[k] == numDupli){ _Equations[numTri]._idxPos[k] = _ControlsIdx.size()-1 ;}
+	}
+	return;
 }
 
 
@@ -952,21 +955,36 @@ bool intersecTest(double A[2], double B[2], double C[2], double D[2]){
 
 	if(Det !=0)
 	{
+		//k,m are barycentric coords
 		Detk = C1*D22-C2*D12 ; k = Detk/Det;
 		Detm = D11*C2-D21*C1 ; m = Detm/Det;
 
-		if(k>0+EPSILON && k<1-EPSILON && m>0+EPSILON && m<1-EPSILON ){ 
-				//cout<<" D11:"<<D11<<" D21:"<<D21<<" D12:"<<D12<<" D22:"<<D22<<" C1:"<<C1<<" C2:"<<C2<<endl;
-				//cout<<" A[0]:"<<A[0]<<" A[1]:"<<A[1]<<" B[0]:"<<B[0]<<" B[1]:"<<B[1]<<" C[0]:"<<C[0]<<" C[1]:"<<C[1]<<" D[0]:"<<D[0]<<" D[1]:"<<D[1]<<endl;
-				//cout<<"Det :"<<Det<<endl;
-				//cout<<"Detk :"<<Detk<<endl;
-				//cout<<"Detm :"<<Detm<<endl;
-				//cout<<"k :"<<k<<endl;
-				//cout<<"m :"<<m<<endl;
-				//cout<<"intersecte"<<endl;
-				return true;
+		bool c1,c2,c3;
+		c1 = (k > ( 0 + EPSILON ) ) && ( k < ( 1 - EPSILON ) );
+		c2 = (m > ( 0 + EPSILON ) ) && ( m < ( 1 - EPSILON ) );
+		c3 = (m + k) < (1 - EPSILON);
+
+		if(c1 && c2 && !c3) {
+			puts("c1 && c2 && !c3");
+			exit(1);
 		}
-	
+
+		if( c1 && c2 && c3 ){
+			//cout<<" D11:"<<D11<<" D21:"<<D21<<" D12:"<<D12<<" D22:"<<D22<<" C1:"<<C1<<" C2:"<<C2<<endl;
+			//cout<<" A[0]:"<<A[0]<<" A[1]:"<<A[1]<<" B[0]:"<<B[0]<<" B[1]:"<<B[1]<<" C[0]:"<<C[0]<<" C[1]:"<<C[1]<<" D[0]:"<<D[0]<<" D[1]:"<<D[1]<<endl;
+			//cout<<"Det :"<<Det<<endl;
+			//cout<<"Detk :"<<Detk<<endl;
+			//cout<<"Detm :"<<Detm<<endl;
+			//cout<<"k :"<<k<<endl;
+			//cout<<"m :"<<m<<endl;
+			//cout<<"intersecte"<<endl;
+			return true;
+		} else {
+			//cout << "k :"  << k 		<< endl ;
+			//cout << "m :"  << m 		<< endl ;
+			//cout << "k+m:" << k + m 	<< endl ;
+			return false;
+		}
 	}
 
 	//cout<<" D11:"<<D11<<" D21:"<<D21<<" D12:"<<D12<<" D22:"<<D22<<" C1:"<<C1<<" C2:"<<C2<<endl;
@@ -976,7 +994,6 @@ bool intersecTest(double A[2], double B[2], double C[2], double D[2]){
 	//cout<<"Detm :"<<Detm<<endl;
 	//cout<<"k :"<<k<<endl;
 	//cout<<"m :"<<m<<endl;
-
 
 	return false;
 }
@@ -991,28 +1008,28 @@ A[1] = _OptControlsIdx[_Equations[numTri]._idxPos[id1]][1];
 B[0] = _OptControlsIdx[_Equations[numTri]._idxPos[id2]][0];
 B[1] = _OptControlsIdx[_Equations[numTri]._idxPos[id2]][1];
 
-		for(int i = 0 ; i < _Equations.size() ; i++){
-			if(i != numTri){
-				for(idnew[0]=0 ; idnew[0] < 2 ; idnew[0] ++){
-					if(idnew[0]==0) idnew[1]=1;	if(idnew[0]==1) idnew[1]=2;	if(idnew[0]==2) idnew[1]=0;
+	for(int i = 0 ; i < _Equations.size() ; i++){
+		if(i != numTri){
+			for(idnew[0]=0 ; idnew[0] < 2 ; idnew[0] ++){
+				if(idnew[0]==0) idnew[1]=1;	if(idnew[0]==1) idnew[1]=2;	if(idnew[0]==2) idnew[1]=0;
 
-					C[0] = _OptControlsIdx[_Equations[i]._idxPos[idnew[0]]][0];
-					C[1] = _OptControlsIdx[_Equations[i]._idxPos[idnew[0]]][1];
+				C[0] = _OptControlsIdx[_Equations[i]._idxPos[idnew[0]]][0];
+				C[1] = _OptControlsIdx[_Equations[i]._idxPos[idnew[0]]][1];
 
-					D[0] = _OptControlsIdx[_Equations[i]._idxPos[idnew[1]]][0];
-					D[1] = _OptControlsIdx[_Equations[i]._idxPos[idnew[1]]][1];
+				D[0] = _OptControlsIdx[_Equations[i]._idxPos[idnew[1]]][0];
+				D[1] = _OptControlsIdx[_Equations[i]._idxPos[idnew[1]]][1];
 
-					if( intersecTest(A,B,C,D) )
-						 {	cout<<"overlap ! : "<<i<<" "<<idnew[0]<<" "<<idnew[1]<<" "<<_Equations[i]._idxPos[idnew[0]]<<" "<<_Equations[i]._idxPos[idnew[1]]<<endl;
-							return true;
-						 }
-
-				}	
+				if( intersecTest(A,B,C,D) )
+					 {	cout<<"overlap ! : "<<i<<" "<<idnew[0]<<" "<<idnew[1]<<" "<<_Equations[i]._idxPos[idnew[0]]<<" "<<_Equations[i]._idxPos[idnew[1]]<<endl;
+						return true;
+					 }
 			}	
-
 		}
-		return false;
+	}
+	return false;
 }
+
+/*****************************************************************************/
 
 bool Surface::OverlapTest(){
 
@@ -1035,69 +1052,106 @@ bool Surface::OverlapTest(){
 	return false;
 }
 
+/*****************************************************************************/
 
 void Surface::OptCopytoBuff(){
-		_OptCtrsBuff.clear();
+	_OptCtrsBuff.clear();
+	if (_OptControlsIdx.size())
+		puts("DEBUG: Copied empty opt ctrl array to buff");
 	for(int i=0 ; i<_OptControlsIdx.size() ; i++){
-		_OptCtrsBuff.push_back(Point2D(_OptControlsIdx[i][0], _OptControlsIdx[i][1]));
+		_OptCtrsBuff.push_back(	Point2D(	_OptControlsIdx[i][0]	,\
+											_OptControlsIdx[i][1]	)	);
 	}
+	return;
 }
 
-void Surface::RecoverFromBuff(){// dans cette fonction, non seulement on recharge les donn�es de buffOpt dans la liste indexOpt, mais on remet toute les donn�es (Equations, ControlsIdx, Controls et Edges) de maniere � ce que un g2omain() redonne bien la m�me optimisation
+/*****************************************************************************/
 
-	int lastpos = _ControlsIdx.size()-1;// on va chercher le drenier point ajout� et le remplacer par le num du dernier point dupliqu�
+/*
+ * Dans cette fonction, non seulement on recharge les donnees de buffOpt dans
+ * la liste indexOpt, mais on remet toute les donnees (Equations, ControlsIdx,
+ *  Controls et Edges) de maniere a ce que un g2omain() redonne bien la meme
+ *  optimisation
+ */
+void Surface::RecoverFromBuff(){
 
-	for(int i =0; i<_Equations.size() ; i++){
-		for(int k = 0; k< 3; k++){
-			if(_Equations[i]._idxPos[k] == lastpos)
-				{
-						_Equations[i]._idxPos[k] = _numLastInxDupli;
-				}
+	/* on va chercher le dernier point ajoute et le remplacer par le num du
+	 * dernier point duplique */
+
+	int lastpos = _ControlsIdx.size()-1;
+
+	// assertion sanity checks
+	if (_ControlsIdx.size() <= 0)
+		puts("DEBUG: Assertion failed! Empty control point set");
+	if (_Equations.size() <= 0)
+		puts("DEBUG: Assertion failed! Empty equation list");
+	if (_EdgesMeasures.size() <= 0)
+		puts("DEBUG: Assertion failed! Empty edge measure list");
+
+	for(int i=0 ; i<_Equations.size() ; i++){
+		for(int k=0; k<3; k++){
+			if(_Equations[i]._idxPos[k] == lastpos)	{
+				_Equations[i]._idxPos[k] = _numLastInxDupli;
+			}
 		}
 	}
 
-	for(int i =0; i<_EdgesMeasures.size() ; i++){
-		if(_EdgesMeasures[i].from == lastpos){_EdgesMeasures[i].from =_numLastInxDupli;}
-		if(_EdgesMeasures[i].to == lastpos){_EdgesMeasures[i].to =_numLastInxDupli;}
-		if(_EdgesMeasures[i].last == lastpos){_EdgesMeasures[i].last =_numLastInxDupli;}
+	for(int i=0 ; i<_EdgesMeasures.size() ; i++){
+		if(_EdgesMeasures[i].from == lastpos)
+			_EdgesMeasures[i].from = _numLastInxDupli;
+		if(_EdgesMeasures[i].to == lastpos)
+			_EdgesMeasures[i].to = _numLastInxDupli;
+		if(_EdgesMeasures[i].last == lastpos)
+			_EdgesMeasures[i].last = _numLastInxDupli;
 	}
 
 	//_Controls.erase( --(_Controls.end()) ) ;
 
-	_Controls.pop_back();
-	_ControlsIdx.pop_back();
+	_Controls.pop_back();		//remove last element
+	_ControlsIdx.pop_back(); 	//remove last element
 
-	_OptControlsIdx.clear();
+	_OptControlsIdx.clear();	//clear list
 	for(int i=0 ; i<_OptCtrsBuff.size() ; i++){
-		_OptControlsIdx.push_back( Point2D(_OptCtrsBuff[i][0],_OptCtrsBuff[i][1] ));
+		_OptControlsIdx.push_back( Point2D(	_OptCtrsBuff[i][0]	,\
+											_OptCtrsBuff[i][1] 	)	);
 	}
 	_OptCtrsBuff.clear();
-
+	return;
 }
+
+/*****************************************************************************/
 
 void Surface::ClearOptBuff(){
 	if(_OptCtrsBuff.size()>0){
 			_OptCtrsBuff.clear();
 	}
+	return;
 }
 
+/*****************************************************************************/
 
 void Surface::ShiftOptCtrlsIdx(){
 
 	double minx = DBL_MAX, miny=DBL_MAX;
 
+	size_t ctrlsiz = _OptControlsIdx.size();
 
-	for(int i=0; i<_OptControlsIdx.size(); i++){
-	//		cout<<_OptControlsIdx[i][0]<<" "<<_OptControlsIdx[i][1]<<endl;
+	cout << "size " << ctrlsiz << endl;
+
+	if(!ctrlsiz) puts("Empty _OptControlsIdx!");
+
+
+	for(int i=0; i<ctrlsiz; i++){
+			cout<<_OptControlsIdx[i][0]<<" "<<_OptControlsIdx[i][1]<< endl;
 			if(_OptControlsIdx[i][0]<minx) minx = _OptControlsIdx[i][0];
 			if(_OptControlsIdx[i][1]<miny) miny = _OptControlsIdx[i][1];
 	}
 
-	//cout<<"min : "<<minx<<" "<<miny<<endl;
+	cout<<"min : "<<minx<<" "<<miny<<endl;
 
-	for(int i=0; i<_OptControlsIdx.size(); i++){
+	for(int i=0; i<ctrlsiz; i++){
 			_OptControlsIdx[i] = Point2D(_OptControlsIdx[i][0] - minx, _OptControlsIdx[i][1] - miny );
-		//	cout<<_OptControlsIdx[i][0]<<" "<<_OptControlsIdx[i][1]<<endl;
+			cout<<_OptControlsIdx[i][0]<<" "<<_OptControlsIdx[i][1]<<endl;
 	}
 
 		//Determine the size of the Image :
@@ -1108,11 +1162,13 @@ void Surface::ShiftOptCtrlsIdx(){
 			if(_OptControlsIdx[i][1]> maxy) maxy = _OptControlsIdx[i][1];
 	}
 
+	if(int(maxx) == 0 || int(maxy) ==0)
+		puts("Empty image!");
 	_n = int(maxx) + 2;
 	_m = int(maxy) + 2;
 
-	//cout<<"size "<<_n<<" "<<_m<<endl;
-
+	cout<<"Normal map size "<<_n<<" "<<_m<<endl;
+	return;
 }
 
 
@@ -1160,9 +1216,9 @@ void Surface::ComputeImgIdx() {
 		}
 		//cout << endl;
 	}
-
 }
 
+/*****************************************************************************/
 
 void Surface::ComputeBumpImg(std::vector<cv::Point3d >& blob) {
 
@@ -1176,34 +1232,33 @@ void Surface::ComputeBumpImg(std::vector<cv::Point3d >& blob) {
 		}
 	}
 
-
 	for(int i= 0 ; i<blob.size() ; i++){
 
 		double disProj = -1;
 		int idx[2] = {-1, -1};
 		int numTri = -1;
 
-		if(GetDistAndIdx(blob[i], disProj, idx, numTri) ){// on peut projeter le point
+		if(GetDistAndIdx(blob[i], disProj, idx, numTri) ){
+			// on peut projeter le point
 
 			_BumpImg[idx[0]][idx[1]] = disProj;
-
 
 			//cout<<"numTri : "<<numTri<<endl;
 			//cout<<"idx : "<<idx[0]<<" "<<idx[1]<<endl;
 			//cout<<"dist Proj : "<<disProj<<endl;
-
 		}
-
 		else {
-		  //cout<<"proj pas possible"<<endl;
+		  cout<<"DEBUG: blob #" << i <<": cannot project"<<endl;
 		}
-		  
-
 	}
-
 }
 
-void getIndex2D(double pos_3[3], const double * ctrls0, const double * ctrls1, const double * ctrls2, const double * ctrlsidx0, const double * ctrlsidx1, const double * ctrlsidx2, int res[2]) {
+/*****************************************************************************/
+
+void getIndex2D(	double pos_3[3], 			const double * ctrls0, 		\
+					const double * ctrls1,		const double * ctrls2, 		\
+					const double * ctrlsidx0, 	const double * ctrlsidx1, 	\
+					const double * ctrlsidx2, 	int res[2]) 				{
     // Compute percentage of ctrl point 1
 	double A[3];
 	diff(A,ctrls1, ctrls2);
@@ -1215,7 +1270,8 @@ void getIndex2D(double pos_3[3], const double * ctrls0, const double * ctrls1, c
     
 	double num, den, lambda;
     if (B[0] != 0.0) {
-        num = double(ctrls0[1] - ctrls2[1]) + double(ctrls2[0] - ctrls0[0])*(B[1]/B[0]);
+        num = 	double(ctrls0[1] - ctrls2[1]) + \
+        		double(ctrls2[0] - ctrls0[0]) * (B[1]/B[0]);
         den = A[1] - A[0]*(B[1]/B[0]);
 	} else {
         num = double(ctrls0[0] - ctrls2[0]);
@@ -1245,7 +1301,8 @@ void getIndex2D(double pos_3[3], const double * ctrls0, const double * ctrls1, c
 	normalize(B);
     
     if (B[0] != 0.0) {
-        num = double(ctrls1[1] - ctrls2[1]) + double(ctrls2[0] - ctrls1[0])*(B[1]/B[0]);
+        num = 	double(ctrls1[1] - ctrls2[1]) + \
+        		double(ctrls2[0] - ctrls1[0])*(B[1]/B[0]);
         den = A[1] - A[0]*(B[1]/B[0]);
 	} else {
         num = double(ctrls1[0] - ctrls2[0]);
@@ -1275,7 +1332,8 @@ void getIndex2D(double pos_3[3], const double * ctrls0, const double * ctrls1, c
 	normalize(B);
     
     if (B[0] != 0.0) {
-        num = double(ctrls2[1] - ctrls1[1]) + double(ctrls1[0] - ctrls2[0])*(B[1]/B[0]);
+        num = 	double(ctrls2[1] - ctrls1[1]) + \
+        		double(ctrls1[0] - ctrls2[0])*(B[1]/B[0]);
         den = A[1] - A[0]*(B[1]/B[0]);
 	} else {
         num = double(ctrls2[0] - ctrls1[0]);
@@ -1299,7 +1357,7 @@ void getIndex2D(double pos_3[3], const double * ctrls0, const double * ctrls1, c
         
 	res[0] = int((u*ctrlsidx0[0] + v*ctrlsidx1[0] + w*ctrlsidx2[0])/(u + v + w));
 	res[1] = int((u*ctrlsidx0[1] + v*ctrlsidx1[1] + w*ctrlsidx2[1])/(u + v + w));
-
+	return;
 }
 
 
@@ -1315,7 +1373,7 @@ bool Surface::GetDistAndIdx(cv::Point3d pt, double& distProj, int idx[2], int& n
     
     for (int i = 0; i < nbPlan; i++) {
 
-		double error_dist = /*abs(*/prod_scal(Inpt, _Equations[i]._normal) - _Equations[i]._dist;// valeur absolue de la distance au plan
+		double error_dist = /*abs*/(prod_scal(Inpt, _Equations[i]._normal) - _Equations[i]._dist);// valeur absolue de la distance au plan
         
 		double proj[3];
 		proj[0] = Inpt[0] - error_dist*_Equations[i]._normal[0];
@@ -1362,11 +1420,11 @@ bool Surface::GetDistAndIdx(cv::Point3d pt, double& distProj, int idx[2], int& n
 		distProj = dmin;
 		numTri = numTrimin;
 	
-	cout<<endl;
-	//cout<<"index nouvaux point : "<<numTrimin<<endl;
-	//cout<<"nouveau point 3D : "<<Inpt[0]<<" , "<<Inpt[1]<<" , "<<Inpt[2]<<endl;
-	//cout<<"index 2D : "<<ind_res[0]<<" , "<<ind_res[1]<<";"<<endl;
-	return true;
+		cout<<endl;
+		//cout<<"index nouvaux point : "<<numTrimin<<endl;
+		//cout<<"nouveau point 3D : "<<Inpt[0]<<" , "<<Inpt[1]<<" , "<<Inpt[2]<<endl;
+		//cout<<"index 2D : "<<ind_res[0]<<" , "<<ind_res[1]<<";"<<endl;
+		return true;
 	}
 
 	if (numTrimin == -1){
@@ -1533,7 +1591,6 @@ double* Surface::getPoint3D(int i, int j, int numPlan) {
 	res[2] = (u*P3d0[2] + v*P3d1[2] + w*P3d2[2])/(u + v + w);
 
 	return res;
-
 }
 
 void Surface::DisplayLabelImg(string filename_label){
@@ -1583,8 +1640,6 @@ void Surface::DisplayLabelImg(string filename_label){
 
 	cv::imshow(filename_label, IdxImg);
 	cv::imwrite(filename_label, IdxImg);
-
-
 }
 
 void Surface::DisplayBumpImg(string filename_bump){
@@ -1619,9 +1674,7 @@ void Surface::DisplayBumpImg(string filename_bump){
 				BumpImg.at<cv::Vec3b>(_m-1-j,i)[1] = 0;
 				BumpImg.at<cv::Vec3b>(_m-1-j,i)[2] = 0;
 			}
-
 		}
-
 	}
 
 	//cout<<"maxi bump : "<<maxibump<<endl;
@@ -1668,7 +1721,6 @@ void Surface::DisplaySurfsPlus(int switch1){ //switch1 = 0 doesnt display 2D tri
 
 
 	if(switch1){
-
 		glPointSize(4);
 		glEnable(GL_POINT_SMOOTH);
 		glBegin(GL_POINTS);
@@ -1682,7 +1734,6 @@ void Surface::DisplaySurfsPlus(int switch1){ //switch1 = 0 doesnt display 2D tri
 			glVertex3d(_OptControlsIdx[i][0]/double(_k),_OptControlsIdx[i][1]/double(_k),0.0);
 		 }
 
-
 		// ControlsIdx  display :
 		for(int i = 0 ; i < _ControlsIdx.size() ; i++){
 
@@ -1690,18 +1741,14 @@ void Surface::DisplaySurfsPlus(int switch1){ //switch1 = 0 doesnt display 2D tri
 			else {glColor4ub(150,150,150, 255);}
 
 			glVertex3d(_ControlsIdx[i][0]/double(_k)-1,_ControlsIdx[i][1]/double(_k)+0.1,0.0);
-		 }
-
+		}
 		glEnd();
-
 		glDisable(GL_POINT_SMOOTH);
-
 	}
 
 	glBegin(GL_TRIANGLES);
 
-	for(int i=0; i < _Equations.size() ; i++)
-	{
+	for(int i=0; i < _Equations.size() ; i++) {
 
 		int idx[3];
 		int idx3d[3];

@@ -19,7 +19,7 @@
 #include "g2outilities.h"
 
 //#include <cv.h>
-#include <opencv/highgui.h>
+#include <opencv/highgui.h> //imread, imwrite
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 //#include "opencv2/features2d/features2d.hpp"
@@ -107,15 +107,23 @@ typedef std::vector<GridEdge, Eigen::aligned_allocator<GridEdge> >  GridEdgeVect
 class Surface {
 public:
 
+	//_n and _m size of the allocated memory for the 2D images (lab and bump)
 	int _n;
-	int _m; //_n and _m size of the allocated memory for the 2D images (lab and bump)
-	int _k; // _scale factor which will multiply every 3D distance to assure a minimum resolution of the optimised result (k is the resolution)
+	int _m;
+	/* _scale factor which will multiply every 3D distance to assure a minimum
+	 * resolution of the optimised result (k is the resolution) 	*/
+	int _k;
 
+	//vectors used as lists
+	//TODO: check if the stl list type wouldn't run faster
 	vector <Point3D> _Controls;
 	vector <Point2D> _ControlsIdx;
 	vector <Point2D> _OptCtrsBuff;
 	vector <Point2D> _OptControlsIdx;
 
+	/* Used to RecoverFromBuff() if Surfaces Overlap -OverlapTest()- after
+	 * duplicating -findPointToDupli()- vertices to open the graph
+	 */
 	int _numLastInxDupli;
 
 
@@ -124,12 +132,12 @@ public:
 	GridEdgeVector _EdgesMeasures;
 
 
-	//rendu :
-	int **_ImgIndx;
-	double **_BumpImg;
-	char ***_RGBImg;
-	double ***_VtxImg;
-	double ***_RecImg;
+	//render: n*m arrays
+	int 	**_ImgIndx;		// _n*_m
+	double 	**_BumpImg; 	// _n*_m
+	char 	***_RGBImg;		// ???		Never used?
+	double 	***_VtxImg;		// _n*_m*3
+	double 	***_RecImg;		// _n*_m*3
 
 
 public:
@@ -144,6 +152,45 @@ public:
 		_RecImg = NULL;
 		_RGBImg = NULL;
 	};
+
+	Surface(Surface* S) {
+		/* can't call this() constructor in c++...
+		 * basic initialization copypasted from Surface(int k)
+		 */
+		this->_k = S->_k ;
+		this->_m = S->_m ;
+		this->_n = S->_n ;
+		this->_ImgIndx 	= NULL ;
+		this->_BumpImg 	= NULL ;
+		this->_VtxImg 	= NULL ;
+		this->_RecImg 	= NULL ;
+		this->_RGBImg 	= NULL ;
+		this->_numLastInxDupli = S->_numLastInxDupli ;
+
+		//copy lists/vectors
+		this->_Controls 		= S -> _Controls ;
+		this->_ControlsIdx 		= S -> _ControlsIdx ;
+		this->_OptCtrsBuff		= S -> _OptCtrsBuff ;
+		this->_OptControlsIdx	= S -> _OptControlsIdx ;
+		this->_Equations 		= S -> _Equations ;
+		this->_EdgesMeasures 	= S -> _EdgesMeasures ;
+
+		// Copy arrays if they are initialized (non-NULL)
+		if (S->_ImgIndx)
+			memcpy( this->_ImgIndx, S->_ImgIndx,	_n*_m*sizeof(	int		));
+		if (S-> _BumpImg)
+			memcpy( this->_BumpImg, S->_BumpImg,	_n*_m*sizeof(	double	));
+		if (S->_VtxImg)
+			memcpy(	this->_VtxImg, 	S->_VtxImg, 	_n*_m*3*sizeof( double	));
+		if (S->_RGBImg)	// Unused array?
+		{
+			puts("DEBUG: _RGBImg was initialized before");
+			memcpy( this->_RGBImg, 	S->_RGBImg, 	_n*_m*3*sizeof( char	));
+		}
+		if (S->_RecImg)
+			memcpy( this->_RecImg, 	S->_RecImg, 	_n*_m*3*sizeof( double	));
+	}
+
 	~Surface() {};
 
 	inline int getN() {return _n;}

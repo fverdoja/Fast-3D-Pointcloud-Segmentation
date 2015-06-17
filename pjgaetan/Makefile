@@ -46,10 +46,12 @@ $(EXEC): $(OBJ)
 #          (2) main.cpp kernel.cu -> main.o kernel.o //good! Make happily makes!! :)
 
 %.o: %.cpp
-	$(CC) -c -march=native $(CC_FLAGS) $< -o $@ -ffast-math
+	$(CC) -c -march=native $(CC_FLAGS) $< -o $@
+#-ffast-math
 
 %.o: %.cu
-	$(NVCC) -c -arch=sm_30 $(CC_FLAGS) $< -o $@ -use_fast_math --prec-sqrt=false
+	$(NVCC) -c -arch=sm_30 $(CC_FLAGS) $< -o $@
+# -use_fast_math --prec-sqrt=false
 
 ## To remove generated files
 .PHONY: clean
