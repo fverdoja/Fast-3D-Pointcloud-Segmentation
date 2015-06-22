@@ -1,8 +1,41 @@
 /*
  * ColorUtilities.cpp
  *
- *  Created on: 01/giu/2015
+ *  Created on: 01/06/2015
  *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *
+ *
+ * Software License Agreement (BSD License)
+ *
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
 #include <opencv2/core/core.hpp>
@@ -209,28 +242,30 @@ float ColorUtilities::rgb_eucl(float rgb1[3], float rgb2[3]) {
 }
 
 void ColorUtilities::rgb_test() {
-	printf("*** RGB euclidean distance test ***\n");
+	console::print_info("Performing RGB euclidean distance test...\n");
 	float rgb1[] = { 0, 0, 0 };
-	printf("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb1, rgb1));
+	console::print_debug("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb1, rgb1));
 
 	float rgb2[] = { 255, 255, 255 };
-	printf("Distance: %f\t(exp: 441.672943)\n", rgb_eucl(rgb1, rgb2));
+	console::print_debug("Distance: %f\t(exp: 441.672943)\n",
+			rgb_eucl(rgb1, rgb2));
 
-	printf("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb2, rgb2));
+	console::print_debug("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb2, rgb2));
 
 	float rgb3[] = { 255, 0, 0 };
-	printf("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb1, rgb3));
+	console::print_debug("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb1, rgb3));
 
 	float rgb4[] = { 0, 255, 0 };
-	printf("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb4, rgb1));
+	console::print_debug("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb4, rgb1));
 
 	float rgb5[] = { 0, 255, 0 };
 	float rgb6[] = { 255, 0, 255 };
-	printf("Distance: %f\t(exp: 441.672943)\n", rgb_eucl(rgb5, rgb6));
+	console::print_debug("Distance: %f\t(exp: 441.672943)\n",
+			rgb_eucl(rgb5, rgb6));
 
 	float rgb7[] = { 100, 20, 35 };
 	float rgb8[] = { 104, 20, 32 };
-	printf("Distance: %f\t(exp: 5)\n", rgb_eucl(rgb7, rgb8));
+	console::print_debug("Distance: %f\t(exp: 5)\n", rgb_eucl(rgb7, rgb8));
 }
 
 float ColorUtilities::ciede00_test(float L1, float a1, float b1, float L2,
@@ -239,7 +274,7 @@ float ColorUtilities::ciede00_test(float L1, float a1, float b1, float L2,
 	float lab2[] = { L2, a2, b2 };
 	float delta_e = lab_ciede00(lab1, lab2);
 	//delta_e = round(delta_e * 10000) / 10000;
-//	printf("Lab test result = | %f - %f | = %f)\n", delta_e, result,
+//	console::print_debug("Lab test result = | %f - %f | = %f)\n", delta_e, result,
 //			std::abs(delta_e - result));
 	return std::abs(delta_e - result);
 }
@@ -348,34 +383,38 @@ void ColorUtilities::lab_test() {
 	err = std::max(err,
 			ciede00_test(2.0776, 0.0795, -1.1350, 0.9033, -0.0636, -0.5514,
 					0.9082));
-	printf("*** LAB CIEDE2000 test ***\n");
-	printf("Lab test max error: %f\n", err);
+	console::print_info("Performing LAB CIEDE2000 test... \n");
+	console::print_debug("Lab test max error: %f\n", err);
 }
 
 void ColorUtilities::convert_test() {
-	printf("*** RGB-LAB Conversion test ***\n");
+	console::print_info("Performing RGB-LAB Conversion test...\n");
 	float rgb1[] = { 123, 10, 200 };
 	float * lab1 = rgb2lab(rgb1);
 	float * rgb1c = lab2rgb(lab1);
-	printf("rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
+	console::print_debug(
+			"rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
 			rgb1[0], rgb1[1], rgb1[2], lab1[0], lab1[1], lab1[2], rgb1c[0],
 			rgb1c[1], rgb1c[2]);
 	float rgb2[] = { 0, 0, 0 };
 	float * lab2 = rgb2lab(rgb2);
 	float * rgb2c = lab2rgb(lab2);
-	printf("rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
+	console::print_debug(
+			"rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
 			rgb2[0], rgb2[1], rgb2[2], lab2[0], lab2[1], lab2[2], rgb2c[0],
 			rgb2c[1], rgb2c[2]);
 	float rgb3[] = { 255, 255, 255 };
 	float * lab3 = rgb2lab(rgb3);
 	float * rgb3c = lab2rgb(lab3);
-	printf("rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
+	console::print_debug(
+			"rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
 			rgb3[0], rgb3[1], rgb3[2], lab3[0], lab3[1], lab3[2], rgb3c[0],
 			rgb3c[1], rgb3c[2]);
 	float rgb4[] = { 255, 255, 0 };
 	float * lab4 = rgb2lab(rgb4);
 	float * rgb4c = lab2rgb(lab4);
-	printf("rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
+	console::print_debug(
+			"rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
 			rgb4[0], rgb4[1], rgb4[2], lab4[0], lab4[1], lab4[2], rgb4c[0],
 			rgb4c[1], rgb4c[2]);
 }

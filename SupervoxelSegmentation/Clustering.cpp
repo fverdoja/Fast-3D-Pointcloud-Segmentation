@@ -3,6 +3,39 @@
  *
  *  Created on: 19/05/2015
  *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *
+ *
+ * Software License Agreement (BSD License)
+ *
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
 #include "Clustering.h"
@@ -14,7 +47,7 @@
 Clustering::Clustering() {
 	set_delta_c(LAB_CIEDE00);
 	set_delta_g(NORMALS_DIFF);
-	set_merging(MANUAL_LAMBDA);
+	set_merging(ADAPTIVE_LAMBDA);
 	set_initial_state = false;
 	init_initial_weights = false;
 }
@@ -80,11 +113,11 @@ void Clustering::cluster(float threshold) {
 	WeightedPairT next;
 	while (!state.weight_map.empty()
 			&& (next = state.get_first_weight(), next.first < threshold)) {
-		printf("left: %de/%dp - w: %f - [%d, %d]\t", state.weight_map.size(),
-				state.segments.size(), next.first, next.second.first,
-				next.second.second);
+		console::print_debug("left: %de/%dp - w: %f - [%d, %d]...",
+				state.weight_map.size(), state.segments.size(), next.first,
+				next.second.first, next.second.second);
 		merge(next.second);
-		printf("OK\n");
+		console::print_debug("OK\n");
 	}
 }
 
@@ -360,7 +393,7 @@ float Clustering::t_c(float delta_c) const {
 		short bin = std::floor(delta_c * bins_num);
 		if (bin == bins_num)
 			bin--;
-		ret = cdf_c.at(bin)/2;
+		ret = cdf_c.at(bin) / 2;
 	}
 	}
 	return ret;
@@ -379,7 +412,7 @@ float Clustering::t_g(float delta_g) const {
 	}
 	case EQUALIZATION: {
 		short bin = std::floor(delta_g * bins_num);
-		ret = cdf_g.at(bin)/2;
+		ret = cdf_g.at(bin) / 2;
 	}
 	}
 	return ret;
