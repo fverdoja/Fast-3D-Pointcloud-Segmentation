@@ -38,10 +38,75 @@
  *
  */
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
 #include "ColorUtilities.h"
+
+const LookupTable ColorUtilities::glasbey = ColorUtilities::init_glasbey();
+
+LookupTable ColorUtilities::init_glasbey() {
+	LookupTable glas;
+	std::string path = "../Src/glasbey.lut";
+
+	std::ifstream f;
+	f.open(path.c_str());
+	if (!f.is_open())
+		throw std::runtime_error(
+				"File 'glasbey.lut' cannot be opened. Please verify the path is right: "
+						+ path);
+	int index = 0;
+	while (!f.eof()) {
+		int l = 0;
+		int r = 0;
+		int g = 0;
+		int b = 0;
+
+		f >> l >> r >> g >> b;
+
+		Color rgb = { r, g, b };
+		glas.insert(std::pair<uint32_t, Color>(l, rgb));
+	}
+
+	f.close();
+	return glas;
+}
+
+float * ColorUtilities::color_conversion(float in[3], int code) {
+	float i1 = in[0];
+	float i2 = in[1];
+	float i3 = in[2];
+
+	cv::Mat in_m(1, 1, CV_32FC3, cv::Scalar(i1, i2, i3));
+	cv::Mat out_m(1, 1, CV_32FC3, cv::Scalar(0, 0, 0));
+
+	cv::cvtColor(in_m, out_m, code);
+
+	cv::Vec3f out_v = out_m.at<cv::Vec3f>(0, 0);
+	float * out = new float[3];
+	out[0] = out_v[0];
+	out[1] = out_v[1];
+	out[2] = out_v[2];
+
+	return out;
+}
+
+float ColorUtilities::ciede00_test(float L1, float a1, float b1, float L2,
+		float a2, float b2, float result) {
+	float lab1[] = { L1, a1, b1 };
+	float lab2[] = { L2, a2, b2 };
+	float delta_e = lab_ciede00(lab1, lab2);
+	//delta_e = round(delta_e * 10000) / 10000;
+//	console::print_debug("Lab test result = | %f - %f | = %f)\n", delta_e, result,
+//			std::abs(delta_e - result));
+	return std::abs(delta_e - result);
+}
+
+uint8_t * ColorUtilities::get_glasbey(uint32_t label) {
+	Color c = glasbey.at(label % 256);
+	uint8_t * rgb = new uint8_t[3];
+	rgb[0] = c.data[0];
+	rgb[1] = c.data[1];
+	rgb[2] = c.data[2];
+	return rgb;
+}
 
 float * ColorUtilities::mean_color(SupervoxelT::Ptr s) {
 	PointCloud<PointT>::Ptr v = s->voxels_;
@@ -89,25 +154,6 @@ float * ColorUtilities::lab2rgb(float lab[3]) {
 	rgb[2] *= 255;
 
 	return rgb;
-}
-
-float * ColorUtilities::color_conversion(float in[3], int code) {
-	float i1 = in[0];
-	float i2 = in[1];
-	float i3 = in[2];
-
-	cv::Mat in_m(1, 1, CV_32FC3, cv::Scalar(i1, i2, i3));
-	cv::Mat out_m(1, 1, CV_32FC3, cv::Scalar(0, 0, 0));
-
-	cv::cvtColor(in_m, out_m, code);
-
-	cv::Vec3f out_v = out_m.at<cv::Vec3f>(0, 0);
-	float * out = new float[3];
-	out[0] = out_v[0];
-	out[1] = out_v[1];
-	out[2] = out_v[2];
-
-	return out;
 }
 
 float ColorUtilities::lab_ciede00(float lab1[3], float lab2[3], double kL,
@@ -266,17 +312,6 @@ void ColorUtilities::rgb_test() {
 	float rgb7[] = { 100, 20, 35 };
 	float rgb8[] = { 104, 20, 32 };
 	console::print_debug("Distance: %f\t(exp: 5)\n", rgb_eucl(rgb7, rgb8));
-}
-
-float ColorUtilities::ciede00_test(float L1, float a1, float b1, float L2,
-		float a2, float b2, float result) {
-	float lab1[] = { L1, a1, b1 };
-	float lab2[] = { L2, a2, b2 };
-	float delta_e = lab_ciede00(lab1, lab2);
-	//delta_e = round(delta_e * 10000) / 10000;
-//	console::print_debug("Lab test result = | %f - %f | = %f)\n", delta_e, result,
-//			std::abs(delta_e - result));
-	return std::abs(delta_e - result);
 }
 
 void ColorUtilities::lab_test() {

@@ -40,134 +40,6 @@
 
 #include "Clustering.h"
 
-/*
- * IMPLEMENTATIONS OF CONSTRUCTORS OF CLASS Clustering
- */
-
-Clustering::Clustering() {
-	set_delta_c(LAB_CIEDE00);
-	set_delta_g(NORMALS_DIFF);
-	set_merging(ADAPTIVE_LAMBDA);
-	set_initial_state = false;
-	init_initial_weights = false;
-}
-
-Clustering::Clustering(ColorDistance c, GeometricDistance g,
-		MergingCriterion m) {
-	set_delta_c(c);
-	set_delta_g(g);
-	set_merging(m);
-	set_initial_state = false;
-	init_initial_weights = false;
-}
-
-/*
- * IMPLEMENTATIONS OF PUBLIC METHODS OF CLASS Clustering
- */
-void Clustering::set_merging(MergingCriterion m) {
-	merging_type = m;
-	lambda = 0.5;
-	bins_num = 500;
-	init_initial_weights = false;
-}
-
-void Clustering::set_lambda(float l) {
-	if (merging_type != MANUAL_LAMBDA)
-		throw std::logic_error(
-				"Lambda can be set only if the merging criterion is set to MANUAL_LAMBDA");
-	if (l < 0 || l > 1)
-		throw std::invalid_argument("Argument outside range [0, 1]");
-	lambda = l;
-	init_initial_weights = false;
-}
-
-void Clustering::set_bins_num(short b) {
-	if (merging_type != EQUALIZATION)
-		throw std::logic_error(
-				"Bins number can be set only if the merging criterion is set to EQUALIZATION");
-	if (b < 0)
-		throw std::invalid_argument("Argument lower than 0");
-	bins_num = b;
-	init_initial_weights = false;
-}
-
-void Clustering::set_initialstate(ClusteringT segm, AdjacencyMapT adj) {
-	clear_adjacency(&adj);
-	ClusteringState init_state(segm, adj2weight(segm, adj));
-	initial_state = init_state;
-	state = init_state;
-	set_initial_state = true;
-	init_initial_weights = false;
-}
-
-void Clustering::cluster(float threshold) {
-	if (!set_initial_state)
-		throw std::logic_error("Cannot call 'cluster' before "
-				"setting an initial state with 'set_initialstate'");
-
-	if (!init_initial_weights)
-		init_weights();
-
-	state = initial_state;
-
-	WeightedPairT next;
-	while (!state.weight_map.empty()
-			&& (next = state.get_first_weight(), next.first < threshold)) {
-		console::print_debug("left: %de/%dp - w: %f - [%d, %d]...",
-				state.weight_map.size(), state.segments.size(), next.first,
-				next.second.first, next.second.second);
-		merge(next.second);
-		console::print_debug("OK\n");
-	}
-}
-
-PointCloud<PointT>::Ptr Clustering::get_colored_cloud() const {
-	PointCloud<PointT>::Ptr colored_cloud(new PointCloud<PointT>);
-
-	ClusteringT::const_iterator it = state.segments.begin();
-	ClusteringT::const_iterator it_end = state.segments.end();
-
-	for (; it != it_end; ++it) {
-		uint8_t r, g, b;
-		r = rand() % 256;
-		g = rand() % 256;
-		b = rand() % 256;
-		PointCloud<PointT> cloud = *(it->second->voxels_);
-		PointCloud<PointT>::iterator it_cloud = cloud.begin();
-		PointCloud<PointT>::iterator it_cloud_end = cloud.end();
-		for (; it_cloud != it_cloud_end; ++it_cloud) {
-			it_cloud->r = r;
-			it_cloud->g = g;
-			it_cloud->b = b;
-		}
-		*(colored_cloud) += cloud;
-	}
-
-	return colored_cloud;
-}
-
-std::pair<ClusteringT, AdjacencyMapT> Clustering::get_currentstate() const {
-	std::pair<ClusteringT, AdjacencyMapT> ret;
-	ret.first = state.segments;
-	ret.second = weight2adj(state.weight_map);
-	return ret;
-}
-
-void Clustering::test_all() const {
-	ColorUtilities::rgb_test();
-	ColorUtilities::lab_test();
-	ColorUtilities::convert_test();
-
-//	DeltasDistribT d;
-//	for(int i = 0; i<10; i++)
-//		d.insert(i);
-//	printf("*** Mean deltas test ***\nMean = %f\n", deltas_mean(d));
-}
-
-/*
- * IMPLEMENTATIONS OF PRIVATE METHODS OF CLASS Clustering
- */
-
 float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
 		PointT centroid2) const {
 	Eigen::Vector3f N1 = norm1.getNormalVector3fMap();
@@ -227,6 +99,7 @@ std::pair<float, float> Clustering::delta_c_g(SupervoxelT::Ptr supvox1,
 	std::pair<float, float> ret(delta_c, delta_g);
 	return ret;
 }
+
 float Clustering::delta(SupervoxelT::Ptr supvox1,
 		SupervoxelT::Ptr supvox2) const {
 
@@ -236,31 +109,6 @@ float Clustering::delta(SupervoxelT::Ptr supvox1,
 
 	float delta = t_c(deltas.first) + t_g(deltas.second);
 	return delta;
-}
-
-void Clustering::clear_adjacency(AdjacencyMapT * adjacency) {
-	AdjacencyMapT::iterator it = adjacency->begin();
-	AdjacencyMapT::iterator it_end = adjacency->end();
-	while (it != it_end) {
-		if (it->first > it->second) {
-			adjacency->erase(it++);
-		} else {
-			++it;
-		}
-	}
-//	for (; it != it_end; ++it) {
-//		uint32_t key = it->first;
-//		uint32_t value = it->second;
-//		std::pair<AdjacencyMapT::iterator, AdjacencyMapT::iterator> range =
-//				adjacency->equal_range(value);
-//		AdjacencyMapT::iterator val_it = range.first;
-//		for (; val_it != range.second; ++val_it) {
-//			if (val_it->second == key) {
-//				adjacency->erase(val_it);
-//				break;
-//			}
-//		}
-//	}
 }
 
 AdjacencyMapT Clustering::weight2adj(WeightMapT w_map) const {
@@ -418,29 +266,47 @@ float Clustering::t_g(float delta_g) const {
 	return ret;
 }
 
+void Clustering::cluster(ClusteringState start, float threshold) {
+	state = start;
+
+	WeightedPairT next;
+	while (!state.weight_map.empty()
+			&& (next = state.get_first_weight(), next.first < threshold)) {
+		console::print_debug("left: %de/%dp - w: %f - [%d, %d]...",
+				state.weight_map.size(), state.segments.size(), next.first,
+				next.second.first, next.second.second);
+		merge(next.second);
+		console::print_debug("OK\n");
+	}
+}
+
 void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
 	SupervoxelT::Ptr sup1 = state.segments.at(supvox_ids.first);
 	SupervoxelT::Ptr sup2 = state.segments.at(supvox_ids.second);
+	SupervoxelT::Ptr sup_new = boost::make_shared<SupervoxelT>();
 
-	*(sup1->voxels_) += *(sup2->voxels_);
-	*(sup1->normals_) += *(sup2->normals_);
+	*(sup_new->voxels_) = *(sup1->voxels_) + *(sup2->voxels_);
+	*(sup_new->normals_) = *(sup1->normals_) + *(sup2->normals_);
 
 	PointT new_centr;
-	computeCentroid(*(sup1->voxels_), new_centr);
-	sup1->centroid_ = new_centr;
+	computeCentroid(*(sup_new->voxels_), new_centr);
+	sup_new->centroid_ = new_centr;
 
 	Eigen::Vector4f new_norm;
 	float new_curv;
-	computePointNormal(*(sup1->voxels_), new_norm, new_curv);
-	flipNormalTowardsViewpoint(sup1->centroid_, 0, 0, 0, new_norm);
+	computePointNormal(*(sup_new->voxels_), new_norm, new_curv);
+	flipNormalTowardsViewpoint(sup_new->centroid_, 0, 0, 0, new_norm);
 	new_norm[3] = 0.0f;
 	new_norm.normalize();
-	sup1->normal_.normal_x = new_norm[0];
-	sup1->normal_.normal_y = new_norm[1];
-	sup1->normal_.normal_z = new_norm[2];
-	sup1->normal_.curvature = new_curv;
+	sup_new->normal_.normal_x = new_norm[0];
+	sup_new->normal_.normal_y = new_norm[1];
+	sup_new->normal_.normal_z = new_norm[2];
+	sup_new->normal_.curvature = new_curv;
 
+	state.segments.erase(supvox_ids.first);
 	state.segments.erase(supvox_ids.second);
+	state.segments.insert(
+			std::pair<uint32_t, SupervoxelT::Ptr>(supvox_ids.first, sup_new));
 
 	WeightMapT new_map;
 
@@ -482,6 +348,31 @@ void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
 	state.weight_map = new_map;
 }
 
+void Clustering::clear_adjacency(AdjacencyMapT * adjacency) {
+	AdjacencyMapT::iterator it = adjacency->begin();
+	AdjacencyMapT::iterator it_end = adjacency->end();
+	while (it != it_end) {
+		if (it->first > it->second) {
+			adjacency->erase(it++);
+		} else {
+			++it;
+		}
+	}
+//	for (; it != it_end; ++it) {
+//		uint32_t key = it->first;
+//		uint32_t value = it->second;
+//		std::pair<AdjacencyMapT::iterator, AdjacencyMapT::iterator> range =
+//				adjacency->equal_range(value);
+//		AdjacencyMapT::iterator val_it = range.first;
+//		for (; val_it != range.second; ++val_it) {
+//			if (val_it->second == key) {
+//				adjacency->erase(val_it);
+//				break;
+//			}
+//		}
+//	}
+}
+
 bool Clustering::contains(WeightMapT w, uint32_t i1, uint32_t i2) {
 	WeightMapT::iterator it = w.begin();
 	WeightMapT::iterator it_end = w.end();
@@ -506,4 +397,225 @@ float Clustering::deltas_mean(DeltasDistribT deltas) {
 		mean_d = mean_d + (1 / count) * (delta - mean_d);
 	}
 	return mean_d;
+}
+
+Clustering::Clustering() {
+	set_delta_c(LAB_CIEDE00);
+	set_delta_g(NORMALS_DIFF);
+	set_merging(ADAPTIVE_LAMBDA);
+	set_initial_state = false;
+	init_initial_weights = false;
+}
+
+Clustering::Clustering(ColorDistance c, GeometricDistance g,
+		MergingCriterion m) {
+	set_delta_c(c);
+	set_delta_g(g);
+	set_merging(m);
+	set_initial_state = false;
+	init_initial_weights = false;
+}
+
+void Clustering::set_merging(MergingCriterion m) {
+	merging_type = m;
+	lambda = 0.5;
+	bins_num = 500;
+	init_initial_weights = false;
+}
+
+void Clustering::set_lambda(float l) {
+	if (merging_type != MANUAL_LAMBDA)
+		throw std::logic_error(
+				"Lambda can be set only if the merging criterion is set to MANUAL_LAMBDA");
+	if (l < 0 || l > 1)
+		throw std::invalid_argument("Argument outside range [0, 1]");
+	lambda = l;
+	init_initial_weights = false;
+}
+
+void Clustering::set_bins_num(short b) {
+	if (merging_type != EQUALIZATION)
+		throw std::logic_error(
+				"Bins number can be set only if the merging criterion is set to EQUALIZATION");
+	if (b < 0)
+		throw std::invalid_argument("Argument lower than 0");
+	bins_num = b;
+	init_initial_weights = false;
+}
+
+void Clustering::set_initialstate(ClusteringT segm, AdjacencyMapT adj) {
+	clear_adjacency(&adj);
+	ClusteringState init_state(segm, adj2weight(segm, adj));
+	initial_state = init_state;
+	state = init_state;
+	set_initial_state = true;
+	init_initial_weights = false;
+}
+
+std::pair<ClusteringT, AdjacencyMapT> Clustering::get_currentstate() const {
+	std::pair<ClusteringT, AdjacencyMapT> ret;
+	ret.first = state.segments;
+	ret.second = weight2adj(state.weight_map);
+	return ret;
+}
+
+PointCloud<PointT>::Ptr Clustering::get_colored_cloud() const {
+	return label2color(get_labeled_cloud());
+}
+
+PointCloud<PointXYZL>::Ptr Clustering::get_labeled_cloud() const {
+	PointCloud<PointXYZL>::Ptr label_cloud(new PointCloud<PointXYZL>);
+
+	ClusteringT::const_iterator it = state.segments.begin();
+	ClusteringT::const_iterator it_end = state.segments.end();
+
+	uint32_t current_l = 0;
+	for (; it != it_end; ++it) {
+		PointCloud<PointT> cloud = *(it->second->voxels_);
+		PointCloud<PointT>::iterator it_cloud = cloud.begin();
+		PointCloud<PointT>::iterator it_cloud_end = cloud.end();
+		for (; it_cloud != it_cloud_end; ++it_cloud) {
+			PointXYZL p;
+			p.x = it_cloud->x;
+			p.y = it_cloud->y;
+			p.z = it_cloud->z;
+			p.label = current_l;
+			label_cloud->push_back(p);
+		}
+		current_l++;
+	}
+
+	return label_cloud;
+}
+
+void Clustering::cluster(float threshold) {
+	if (!set_initial_state)
+		throw std::logic_error("Cannot call 'cluster' before "
+				"setting an initial state with 'set_initialstate'");
+
+	if (!init_initial_weights)
+		init_weights();
+
+	cluster(initial_state, threshold);
+}
+std::map<float, performanceSet> Clustering::all_thresh(
+		PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+		float end_thresh, float step_thresh) {
+	if (start_thresh < 0 || start_thresh > 1 || end_thresh < 0 || end_thresh > 1
+			|| step_thresh < 0 || step_thresh > 1) {
+		throw std::out_of_range(
+				"start_thresh, end_thresh and/or step_thresh outside of range [0, 1]");
+	}
+	if (start_thresh > end_thresh) {
+		console::print_warn(
+				"Start threshold greater then end threshold, inverting.\n");
+		float temp = end_thresh;
+		end_thresh = start_thresh;
+		start_thresh = temp;
+	}
+
+	console::print_info("Testing thresholds from %f to %f (step %f)\n",
+			start_thresh, end_thresh, step_thresh);
+
+	std::map<float, performanceSet> thresholds;
+	cluster(start_thresh);
+	Testing test(get_labeled_cloud(), ground_truth);
+	performanceSet p = test.eval_performance();
+	thresholds.insert(std::pair<float, performanceSet>(start_thresh, p));
+	console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n",
+			start_thresh, p.fscore, p.voi, p.wov);
+
+	for (float t = start_thresh + step_thresh; t <= end_thresh; t +=
+			step_thresh) {
+		cluster(state, t);
+		test.set_segm(get_labeled_cloud());
+		p = test.eval_performance();
+		thresholds.insert(std::pair<float, performanceSet>(t, p));
+		console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n", t,
+				p.fscore, p.voi, p.wov);
+	}
+
+	return thresholds;
+}
+
+std::pair<float, performanceSet> Clustering::best_thresh(
+		PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+		float end_thresh, float step_thresh) {
+	std::map<float, performanceSet> thresholds = all_thresh(ground_truth,
+			start_thresh, end_thresh, step_thresh);
+	return best_thresh(thresholds);
+}
+
+std::pair<float, performanceSet> Clustering::best_thresh(
+		std::map<float, performanceSet> all_thresh) {
+	float best_t = 0;
+	performanceSet best_performance;
+
+	std::map<float, performanceSet>::iterator it = all_thresh.begin();
+
+	for (; it != all_thresh.end(); ++it) {
+		if (it->second.fscore > best_performance.fscore) {
+			best_performance = it->second;
+			best_t = it->first;
+		}
+	}
+
+	return std::pair<float, performanceSet>(best_t, best_performance);
+}
+
+void Clustering::test_all() const {
+	ColorUtilities::rgb_test();
+	ColorUtilities::lab_test();
+	ColorUtilities::convert_test();
+
+//	DeltasDistribT d;
+//	for(int i = 0; i<10; i++)
+//		d.insert(i);
+//	printf("*** Mean deltas test ***\nMean = %f\n", deltas_mean(d));
+}
+
+PointCloud<PointT>::Ptr Clustering::label2color(
+		PointCloud<PointLT>::Ptr label_cloud) {
+	PointCloud<PointT>::Ptr colored_cloud(new PointCloud<PointT>);
+	PointCloud<PointLCT>::Ptr temp_cloud(new PointCloud<PointLCT>);
+
+	copyPointCloud(*label_cloud, *temp_cloud);
+
+	PointCloud<PointLCT>::iterator it = temp_cloud->begin();
+	PointCloud<PointLCT>::iterator it_end = temp_cloud->end();
+
+	for (; it != it_end; ++it) {
+		uint8_t * rgb = ColorUtilities::get_glasbey(it->label);
+		it->r = rgb[0];
+		it->g = rgb[1];
+		it->b = rgb[2];
+	}
+
+	copyPointCloud(*temp_cloud, *colored_cloud);
+	return colored_cloud;
+}
+
+PointCloud<PointLT>::Ptr Clustering::color2label(
+		PointCloud<PointT>::Ptr colored_cloud) {
+	PointCloud<PointLT>::Ptr label_cloud(new PointCloud<PointLT>);
+	PointCloud<PointLCT>::Ptr temp_cloud(new PointCloud<PointLCT>);
+	std::map<float, uint32_t> mappings;
+	copyPointCloud(*colored_cloud, *temp_cloud);
+
+	PointCloud<PointLCT>::iterator it = temp_cloud->begin();
+	PointCloud<PointLCT>::iterator it_end = temp_cloud->end();
+
+	uint32_t i = 0;
+	for (; it != it_end; ++it) {
+		if (mappings.count(it->rgb) != 0)
+			it->label = mappings.at(it->rgb);
+		else {
+			it->label = i;
+			mappings.insert(std::pair<float, uint32_t>(it->rgb, i));
+			i++;
+		}
+	}
+
+	copyPointCloud(*temp_cloud, *label_cloud);
+	return label_cloud;
 }

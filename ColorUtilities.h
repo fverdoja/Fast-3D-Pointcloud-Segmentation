@@ -44,17 +44,30 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <iostream>
+#include <fstream>
 
 using namespace pcl;
 
+struct Color {
+	uint8_t data[3];
+};
+
 typedef PointXYZRGBA PointT;
 typedef Supervoxel<PointT> SupervoxelT;
+typedef std::map<uint32_t, Color> LookupTable;
 
 const double PI = 3.141592653589793238462643383279;
 const float RGB_RANGE = 441.672943;
 const float LAB_RANGE = 137.3607;
 
 class ColorUtilities {
+	static const LookupTable glasbey;
+
+	static LookupTable init_glasbey();
 	static float * color_conversion(float in[3], int code);
 	static float ciede00_test(float L1, float a1, float b1, float L2, float a2,
 			float b2, float result);
@@ -62,6 +75,7 @@ class ColorUtilities {
 	}
 
 public:
+	static uint8_t * get_glasbey(uint32_t label);
 	static float * mean_color(SupervoxelT::Ptr s);
 	static float * rgb2lab(float rgb[3]);
 	static float * lab2rgb(float lab[3]);

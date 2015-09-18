@@ -47,10 +47,13 @@
 
 #include "ColorUtilities.h"
 #include "ClusteringState.h"
+#include "Testing.h"
 
 using namespace pcl;
 
 typedef PointXYZRGBA PointT;
+typedef PointXYZL PointLT;
+typedef PointXYZRGBL PointLCT;
 typedef Supervoxel<PointT> SupervoxelT;
 typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<uint32_t, uint32_t> AdjacencyMapT;
@@ -89,7 +92,9 @@ class Clustering {
 	std::map<short, float> compute_cdf(DeltasDistribT dist);
 	float t_c(float delta_c) const;
 	float t_g(float delta_g) const;
+	void cluster(ClusteringState start, float threshold);
 	void merge(std::pair<uint32_t, uint32_t> supvox_ids);
+
 	static void clear_adjacency(AdjacencyMapT * adjacency);
 	static bool contains(WeightMapT w, uint32_t i1, uint32_t i2);
 	static float deltas_mean(DeltasDistribT deltas);
@@ -127,10 +132,25 @@ public:
 	std::pair<ClusteringT, AdjacencyMapT> get_currentstate() const;
 
 	PointCloud<PointT>::Ptr get_colored_cloud() const;
+	PointCloud<PointXYZL>::Ptr get_labeled_cloud() const;
 
 	void cluster(float threshold);
 
+	std::map<float, performanceSet> all_thresh(
+			PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+			float end_thresh, float step_thresh);
+	std::pair<float, performanceSet> best_thresh(
+			PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+			float end_thresh, float step_thresh);
+	std::pair<float, performanceSet> best_thresh(
+			std::map<float, performanceSet> all_thresh);
+
 	void test_all() const;
+
+	static PointCloud<PointT>::Ptr label2color(
+			PointCloud<PointLT>::Ptr label_cloud);
+	static PointCloud<PointLT>::Ptr color2label(
+			PointCloud<PointT>::Ptr colored_cloud);
 };
 
 #endif /* CLUSTERING_H_ */

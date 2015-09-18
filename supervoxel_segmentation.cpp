@@ -56,8 +56,12 @@
 #include <vtkImageFlip.h>
 #include <vtkPolyLine.h>
 
-#include "Clustering.h"
+//#include <boost/filesystem.hpp>
 
+#include "Clustering.h"
+#include "Testing.h"
+
+using namespace boost;
 using namespace pcl;
 
 // Types
@@ -67,6 +71,8 @@ typedef PointNormal PointNT;
 typedef PointCloud<PointNT> PointNCloudT;
 typedef PointXYZL PointLT;
 typedef PointCloud<PointLT> PointLCloudT;
+typedef PointXYZRGBL PointLCT;
+typedef PointCloud<PointLCT> PointLCCloudT;
 
 bool show_voxel_centroids = false;
 bool show_segmentation = true;
@@ -74,6 +80,9 @@ bool show_supervoxels = false;
 bool show_supervoxel_normals = false;
 bool show_graph = true;
 bool show_help = false;
+float start_thresh = 0.8;
+float end_thresh = 1;
+float step_thresh = 0.005;
 
 void keyboard_callback(const visualization::KeyboardEvent& event, void*) {
 	int key = event.getKeyCode();
@@ -104,17 +113,30 @@ void keyboard_callback(const visualization::KeyboardEvent& event, void*) {
 		}
 }
 
+inline bool isNan(float f) {
+	return f != f;
+}
+
+void manageAllPerformances(
+		std::vector<std::map<float, performanceSet> > all_performances);
+void printBestPerformances(std::vector<performanceSet> best_performances);
+
 void addSupervoxelConnectionsToViewer(PointT &supervoxel_center,
 		PointCloudT &adjacent_supervoxel_centers, std::string supervoxel_name,
-		boost::shared_ptr<visualization::PCLVisualizer> & viewer);
+		shared_ptr<visualization::PCLVisualizer> & viewer);
 
-void printText(boost::shared_ptr<visualization::PCLVisualizer> viewer);
-void removeText(boost::shared_ptr<visualization::PCLVisualizer> viewer);
+void visualize(std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters,
+		PointCloudT::Ptr colored_cloud, PointCloudT::Ptr segm_cloud,
+		PointCloudT::Ptr truth_cloud, PointNCloudT::Ptr normal_cloud,
+		std::multimap<uint32_t, uint32_t> adjacency);
+
+void printText(shared_ptr<visualization::PCLVisualizer> viewer);
+void removeText(shared_ptr<visualization::PCLVisualizer> viewer);
 
 int main(int argc, char ** argv) {
 	if (argc < 3) {
 		console::print_info(
-				"Syntax is: %s {-p <pcd-file> OR -y <ply-file> OR -r <rgb-file> -d <depth-file>} {-t <threshold>} [options] \n"
+				"Syntax is: %s {-d <direcory-of-pcd-files> OR -p <pcd-file>} [options] \n"
 						"\n\t"
 						"SUPERVOXEL optional options: \n\t"
 						" -v <voxel-resolution>          (default: 0.008) \n\t"
@@ -124,31 +146,26 @@ int main(int argc, char ** argv) {
 						" -n <normal-weight>             (default: 1.0) \n\t"
 						"\n\t"
 						"SEGMENTATION optional options: \n\t"
+						" -t <threshold>                 (default: auto)\n\t"
 						" --RGB                          (uses the RGB color space for measuring the color distance; if not given, L*A*B* color space is used) \n\t"
 						" --ML [manual-lambda] *         (uses Manual Lambda as merging criterion, if no parameter is given lambda=0.5 is used) \n\t"
 						" --AL                 *         (uses Adaptive lambda as merging criterion) \n\t"
 						" --EQ [bins-number]   *         (uses Equalization as merging criterion, if no parameter is given 200 bins are used) \n\t"
 						"  * please note that only one of this options can be passed at the same time \n\t"
 						"\n\t"
-						"OUTPUT optional options: \n\t"
-						" -o <output-file>               (default filename: test_output.png) \n\t"
-						" -O <refined-output-file>       (default filename: refined_test_output.png) \n\t"
-						" -l <output-label-file>         (default filename: test_output_labels.png) \n\t"
-						" -L <refined-output-label-file> (default filename: refined_test_output_labels.png) \n\t"
-						"\n\t"
 						"OTHER optional options: \n\t"
-						" -g <ground-truth-file>         (conducts performance evaluation and prints results) NOT YET IMPLEMENTED \n\t" //TODO implement
+						" -r <label-to-be-removed>       (if ground-truth is provided, removes all points with the given label from the ground-truth)"
 						" --NT                           (disables use of single camera transform) \n\t"
 						" --V                            (verbose) \n",
 				argv[0]);
 		return (1);
 	}
 
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////// Input handling
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+////// Input handling
+////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 
 	bool verbose = console::find_switch(argc, argv, "--V");
 	if (verbose) {
@@ -157,41 +174,55 @@ int main(int argc, char ** argv) {
 
 	bool disable_transform = console::find_switch(argc, argv, "--NT");
 
-	// Input parameters
-	PointCloudT::Ptr cloud = boost::make_shared<PointCloudT>();
+// Input parameters
+	PointCloudT::Ptr cloud = make_shared<PointCloudT>();
+	PointLCloudT::Ptr truth_cloud = make_shared<PointLCloudT>();
+	PointLCCloudT::Ptr input_cloud = make_shared<PointLCCloudT>();
 
-	std::string rgb_path;
-	std::string depth_path;
-	std::string ply_path;
-	std::string pcd_path;
+	std::string path;
+	std::vector<std::string> file_list;
 
-	bool rgb_file_specified = console::find_switch(argc, argv, "-r");
-	bool depth_file_specified = console::find_switch(argc, argv, "-d");
-	bool ply_file_specified = console::find_switch(argc, argv, "-y");
+	bool directory_specified = console::find_switch(argc, argv, "-d");
 	bool pcd_file_specified = console::find_switch(argc, argv, "-p");
 
-	if (pcd_file_specified)
-		console::parse(argc, argv, "-p", pcd_path);
-	else if (ply_file_specified)
-		console::parse(argc, argv, "-y", ply_path);
-	else if (rgb_file_specified && depth_file_specified) {
-		console::parse(argc, argv, "-r", rgb_path);
-		console::parse(argc, argv, "-d", depth_path);
+	if (directory_specified) {
+		console::parse(argc, argv, "-d", path);
+		console::print_info("Counting files in directory...\n");
+		if (!filesystem::exists(path) || !filesystem::is_directory(path)) {
+			console::print_error(
+					"Specified directory doesn't exists or can't be opened\n");
+			return (1);
+		}
+
+		filesystem::recursive_directory_iterator it(path);
+		filesystem::recursive_directory_iterator end_it; // default construction yields past-the-end
+		for (; it != end_it; ++it) {
+			if (filesystem::is_regular_file(*it)
+					&& it->path().extension() == ".pcd") {
+				file_list.push_back(it->path().string());
+				console::print_debug("File found: %s\n", it->path().c_str());
+			}
+		}
+		console::print_info("Found %d files\n", file_list.size());
+	} else if (pcd_file_specified) {
+		console::parse(argc, argv, "-p", path);
+		file_list.push_back(path);
 	} else {
-		console::print_error("No input file specified");
+		console::print_error("No input file or directory specified\n");
 		return (1);
 	}
 
 	bool thresh_specified = console::find_switch(argc, argv, "-t");
-	if (!thresh_specified) {
-		console::print_error("No threshold specified\n");
-		return (1);
-	}
-	float thresh;
-	console::parse_argument(argc, argv, "-t", thresh);
-	console::print_debug("Using threshold: %f\n", thresh);
+	float thresh = 0;
 
-	// Supervoxel segmentation parameters
+	if (thresh_specified) {
+		console::parse_argument(argc, argv, "-t", thresh);
+		console::print_debug("Using threshold: %f\n", thresh);
+	} else {
+		console::print_debug("Using automatic threshold\n");
+	}
+
+// Supervoxel segmentation parameters
 	float voxel_resolution = 0.008f;
 	bool voxel_res_specified = console::find_switch(argc, argv, "-v");
 	if (voxel_res_specified)
@@ -214,7 +245,7 @@ int main(int argc, char ** argv) {
 	if (console::find_switch(argc, argv, "-n"))
 		console::parse(argc, argv, "-n", normal_importance);
 
-	// Segmentation parameters
+// Segmentation parameters
 	bool rgb_color_space_specified = console::find_switch(argc, argv, "--RGB");
 	bool manual_lambda_specified = console::find_switch(argc, argv, "--ML");
 	bool adapt_lambda_specified = console::find_switch(argc, argv, "--AL");
@@ -239,255 +270,291 @@ int main(int argc, char ** argv) {
 	if (equalization_specified)
 		console::parse_argument(argc, argv, "--EQ", bin_num);
 
-	// Output parameters
-	std::string out_path;
-	bool output_file_specified = console::find_switch(argc, argv, "-o");
-	if (output_file_specified)
-		console::parse(argc, argv, "-o", out_path);
-	else
-		out_path = "test_output.png";
+	bool remove_label = console::find_switch(argc, argv, "-r");
+	uint32_t label_to_be_removed = 0;
+	if (remove_label)
+		console::parse_argument(argc, argv, "-r", label_to_be_removed);
 
-	std::string out_label_path;
-	bool output_label_file_specified = console::find_switch(argc, argv, "-l");
-	if (output_label_file_specified)
-		console::parse(argc, argv, "-l", out_label_path);
-	else
-		out_label_path = "test_output_labels.png";
+	std::vector<performanceSet> best_performances;
+	std::vector<std::map<float, performanceSet> > all_performances;
+	std::vector<std::string>::iterator file_it = file_list.begin();
+	for (; file_it != file_list.end(); ++file_it) {
 
-	std::string refined_out_path;
-	bool refined_output_file_specified = console::find_switch(argc, argv, "-O");
-	if (refined_output_file_specified)
-		console::parse(argc, argv, "-O", refined_out_path);
-	else
-		refined_out_path = "refined_test_output.png";
+		////////////////////////////////////////////////////////////
+		////// File reading
+		////////////////////////////////////////////////////////////
 
-	std::string refined_out_label_path;
-	bool refined_output_label_file_specified = console::find_switch(argc, argv,
-			"-L");
-	if (refined_output_label_file_specified)
-		console::parse(argc, argv, "-L", refined_out_label_path);
-	else
-		refined_out_label_path = "refined_test_output_labels.png";
+		bool has_label = true; //TODO should be false
 
-	// Pointcloud loading
-	if (pcd_file_specified) {
-		console::print_info("Loading pointcloud from PCD file...\n");
-		io::loadPCDFile(pcd_path, *cloud);
-		for (PointCloudT::iterator cloud_itr = cloud->begin();
-				cloud_itr != cloud->end(); ++cloud_itr)
-			if (cloud_itr->z < 0)
+		console::print_info("Loading pointcloud from PCD file '%s'...\n",
+				file_it->c_str());
+		pcl::io::loadPCDFile(*file_it, *input_cloud);
+		PointLCCloudT::Ptr cloud_temp = make_shared<PointLCCloudT>();
+		PointLCCloudT::iterator cloud_itr = input_cloud->begin();
+		for (; cloud_itr != input_cloud->end(); ++cloud_itr) {
+			if (cloud_itr->z < 0) {
+				console::print_debug(
+						"Found point with z<0, setting to absolute value\n");
 				cloud_itr->z = std::abs(cloud_itr->z);
-	} else if (ply_file_specified) {
-		console::print_info("Loading pointcloud from PLY file...\n");
-		PLYReader ply_reader;
-		ply_reader.read(ply_path, *cloud);
-		for (PointCloudT::iterator cloud_itr = cloud->begin();
-				cloud_itr != cloud->end(); ++cloud_itr)
-			if (cloud_itr->z < 0)
-				cloud_itr->z = std::abs(cloud_itr->z);
-	} else {
-		console::print_info("Generating pointcloud from RGB-D image...\n");
-		vtkSmartPointer<vtkImageReader2Factory> reader_factory =
-				vtkSmartPointer<vtkImageReader2Factory>::New();
-		vtkImageReader2* rgb_reader = reader_factory->CreateImageReader2(
-				rgb_path.c_str());
-		//qDebug () << "RGB File="<< QString::fromStdString(rgb_path);
-		if (!rgb_reader->CanReadFile(rgb_path.c_str())) {
-			console::print_error("Cannot read rgb image file\n");
-			return (1);
-		}
-		rgb_reader->SetFileName(rgb_path.c_str());
-		rgb_reader->Update();
-		//qDebug () << "Depth File="<<QString::fromStdString(depth_path);
-		vtkImageReader2* depth_reader = reader_factory->CreateImageReader2(
-				depth_path.c_str());
-		if (!depth_reader->CanReadFile(depth_path.c_str())) {
-			console::print_error("Cannot read depth image file\n");
-			return (1);
-		}
-		depth_reader->SetFileName(depth_path.c_str());
-		depth_reader->Update();
-
-		vtkSmartPointer<vtkImageFlip> flipXFilter =
-				vtkSmartPointer<vtkImageFlip>::New();
-		flipXFilter->SetFilteredAxis(0); // flip x axis
-		flipXFilter->SetInputConnection(rgb_reader->GetOutputPort());
-		flipXFilter->Update();
-
-		vtkSmartPointer<vtkImageFlip> flipXFilter2 = vtkSmartPointer<
-				vtkImageFlip>::New();
-		flipXFilter2->SetFilteredAxis(0); // flip x axis
-		flipXFilter2->SetInputConnection(depth_reader->GetOutputPort());
-		flipXFilter2->Update();
-
-		vtkSmartPointer<vtkImageData> rgb_image = flipXFilter->GetOutput();
-		int *rgb_dims = rgb_image->GetDimensions();
-		vtkSmartPointer<vtkImageData> depth_image = flipXFilter2->GetOutput();
-		int *depth_dims = depth_image->GetDimensions();
-
-		if (rgb_dims[0] != depth_dims[0] || rgb_dims[1] != depth_dims[1]) {
-			console::print_error("Depth and RGB dimensions to not match:\n"
-					"\tRGB Image is of size %d by %d \n"
-					"\tDepth Image is of size %d by %d\n", rgb_dims[0],
-					rgb_dims[1], depth_dims[0], depth_dims[1]);
-			return (1);
-		}
-
-		cloud->points.reserve(depth_dims[0] * depth_dims[1]);
-		cloud->width = depth_dims[0];
-		cloud->height = depth_dims[1];
-		cloud->is_dense = false;
-
-		// Fill in image data
-		int centerX = static_cast<int>(cloud->width / 2.0);
-		int centerY = static_cast<int>(cloud->height / 2.0);
-		unsigned short* depth_pixel;
-		unsigned char* color_pixel;
-		float scale = 1.0f / 1000.0f;
-		float focal_length = 525.0f;
-		float fl_const = 1.0f / focal_length;
-		depth_pixel =
-				static_cast<unsigned short*>(depth_image->GetScalarPointer(
-						depth_dims[0] - 1, depth_dims[1] - 1, 0));
-		color_pixel = static_cast<unsigned char*>(rgb_image->GetScalarPointer(
-				depth_dims[0] - 1, depth_dims[1] - 1, 0));
-
-		for (size_t y = 0; y < cloud->height; ++y) {
-			for (size_t x = 0; x < cloud->width;
-					++x, --depth_pixel, color_pixel -= 3) {
-				PointT new_point;
-				//  uint8_t* p_i = &(cloud_blob->data[y * cloud_blob->row_step + x * cloud_blob->point_step]);
-				float depth = static_cast<float>(*depth_pixel) * scale;
-				if (depth == 0.0f) {
-					new_point.x = new_point.y = new_point.z =
-							std::numeric_limits<float>::quiet_NaN();
-				} else {
-					new_point.x = (static_cast<float>(x) - centerX) * depth
-							* fl_const;
-					new_point.y = (static_cast<float>(centerY) - y) * depth
-							* fl_const; // vtk seems to start at the bottom left image corner
-					new_point.z = depth;
-				}
-
-				uint32_t rgb = static_cast<uint32_t>(color_pixel[0]) << 16
-						| static_cast<uint32_t>(color_pixel[1]) << 8
-						| static_cast<uint32_t>(color_pixel[2]);
-				new_point.rgb = *reinterpret_cast<float*>(&rgb);
-				cloud->points.push_back(new_point);
-
+			}
+			if (!has_label && cloud_itr->label != 0) { //TODO this doesn't work if label = 0 exists and is the one to be removed
+				console::print_debug(
+						"Found label data, evaluation is going to be performed\n");
+				has_label = true;
+			}
+			if (!has_label || !remove_label
+					|| (cloud_itr->label != label_to_be_removed
+							&& !isNan(cloud_itr->z))) {
+				cloud_temp->push_back(*cloud_itr);
 			}
 		}
+
+		copyPointCloud(*cloud_temp, *cloud);
+		copyPointCloud(*cloud_temp, *truth_cloud);
+
+		console::print_info("Pointcloud loaded\n");
+
+		////////////////////////////////////////////////////////////
+		////// Supervoxel generation
+		////////////////////////////////////////////////////////////
+
+		SupervoxelClustering<PointT> super(voxel_resolution, seed_resolution,
+				!disable_transform);
+		super.setInputCloud(cloud);
+		super.setColorImportance(color_importance);
+		super.setSpatialImportance(spatial_importance);
+		super.setNormalImportance(normal_importance);
+		std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters;
+
+		console::print_info("Extracting supervoxels...\n");
+		super.extract(supervoxel_clusters);
+		console::print_info("Found %d supervoxels\n",
+				supervoxel_clusters.size());
+		PointCloudT::Ptr colored_voxel_cloud = super.getColoredVoxelCloud();
+		PointCloudT::Ptr voxel_centroid_cloud = super.getVoxelCentroidCloud();
+		PointCloudT::Ptr full_colored_cloud = super.getColoredCloud();
+		PointNCloudT::Ptr sv_normal_cloud = super.makeSupervoxelNormalCloud(
+				supervoxel_clusters);
+		PointLCloudT::Ptr full_labeled_cloud = super.getLabeledCloud();
+
+		console::print_info("Getting supervoxel adjacency...\n");
+		std::multimap<uint32_t, uint32_t> label_adjacency;
+		super.getSupervoxelAdjacency(label_adjacency);
+
+		std::map<uint32_t, Supervoxel<PointT>::Ptr> refined_supervoxel_clusters;
+		console::print_info("Refining supervoxels...\n");
+		super.refineSupervoxels(3, refined_supervoxel_clusters);
+
+		PointCloudT::Ptr refined_colored_voxel_cloud =
+				super.getColoredVoxelCloud();
+		PointNCloudT::Ptr refined_sv_normal_cloud =
+				super.makeSupervoxelNormalCloud(refined_supervoxel_clusters);
+		PointLCloudT::Ptr refined_full_labeled_cloud = super.getLabeledCloud();
+		PointCloudT::Ptr refined_full_colored_cloud = super.getColoredCloud();
+
+		console::print_info(
+				"Constructing Boost Graph Library Adjacency List...\n");
+		typedef adjacency_list<setS, setS, undirectedS, uint32_t, float> VoxelAdjacencyList;
+		typedef VoxelAdjacencyList::vertex_descriptor VoxelID;
+		typedef VoxelAdjacencyList::edge_descriptor EdgeID;
+		VoxelAdjacencyList supervoxel_adjacency_list;
+		super.getSupervoxelAdjacencyList(supervoxel_adjacency_list);
+
+		//Voxelizing ground truth cloud
+		PointCloudT::Ptr colored_truth_cloud = Clustering::label2color(
+				truth_cloud);
+		SupervoxelClustering<PointT> super_label(voxel_resolution,
+				seed_resolution, !disable_transform);
+		super_label.setInputCloud(colored_truth_cloud);
+		super_label.setColorImportance(color_importance);
+		super_label.setSpatialImportance(spatial_importance);
+		super_label.setNormalImportance(normal_importance);
+		std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_label_clusters;
+		super_label.extract(supervoxel_label_clusters);
+		colored_truth_cloud = super_label.getVoxelCentroidCloud();
+		truth_cloud = Clustering::color2label(colored_truth_cloud);
+		colored_truth_cloud = Clustering::label2color(truth_cloud);
+
+		////////////////////////////////////////////////////////////
+		////// Segmentation
+		////////////////////////////////////////////////////////////
+
+		console::print_info("Segmentation initialization...\n");
+
+		Clustering segmentation;
+		if (rgb_color_space_specified)
+			segmentation.set_delta_c(RGB_EUCL);
+
+		if (manual_lambda_specified) {
+			segmentation.set_merging(MANUAL_LAMBDA);
+			if (lambda != 0)
+				segmentation.set_lambda(lambda);
+		} else if (equalization_specified) {
+			segmentation.set_merging(EQUALIZATION);
+			if (bin_num != 0)
+				segmentation.set_bins_num(bin_num);
+		}
+		segmentation.set_initialstate(supervoxel_clusters, label_adjacency);
+		if (manual_lambda_specified || adapt_lambda_specified)
+			console::print_debug("Lambda: %f\n", segmentation.get_lambda());
+
+		if (!thresh_specified) {
+			std::map<float, performanceSet> all = segmentation.all_thresh(
+					truth_cloud, start_thresh, end_thresh, step_thresh);
+			all_performances.push_back(all);
+			std::pair<float, performanceSet> best = segmentation.best_thresh(
+					all);
+			console::print_info(
+					"Using best threshold: %f (F-score %f, voi %f)\n",
+					best.first, best.second.fscore, best.second.voi);
+			thresh = best.first;
+		}
+
+		console::print_info(
+				"Initialization complete\nStarting clustering...\n");
+
+		segmentation.cluster(thresh);
+		console::print_info("Clustering complete\n");
+		std::pair<ClusteringT, AdjacencyMapT> s =
+				segmentation.get_currentstate();
+
+		colored_voxel_cloud = segmentation.get_colored_cloud();
+		label_adjacency = s.second;
+
+		////////////////////////////////////////////////////////////
+		////// Testing
+		////////////////////////////////////////////////////////////
+
+		console::print_info("Initializing testing suite...\n");
+		Testing test(segmentation.get_labeled_cloud(), truth_cloud);
+		best_performances.push_back(test.eval_performance());
+
+		////////////////////////////////////////////////////////////
+		////// Visualization
+		////////////////////////////////////////////////////////////
+
+		if (file_list.size() == 1) {
+			console::print_info("Loading visualization...\n");
+			visualize(supervoxel_clusters, voxel_centroid_cloud,
+					colored_voxel_cloud, colored_truth_cloud,
+					refined_sv_normal_cloud, label_adjacency);
+		}
 	}
 
-	console::print_info("Pointcloud loaded\n");
+	manageAllPerformances(all_performances);
 
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////// Supervoxel generation
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
+	printBestPerformances(best_performances);
 
-	SupervoxelClustering<PointT> super(voxel_resolution, seed_resolution,
-			!disable_transform);
-	super.setInputCloud(cloud);
-	super.setColorImportance(color_importance);
-	super.setSpatialImportance(spatial_importance);
-	super.setNormalImportance(normal_importance);
-	std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters;
+	return (0);
+}
 
-	console::print_info("Extracting supervoxels...\n");
-	super.extract(supervoxel_clusters);
-	console::print_info("Found %d supervoxels\n", supervoxel_clusters.size());
-	PointCloudT::Ptr colored_voxel_cloud = super.getColoredVoxelCloud();
-	PointCloudT::Ptr voxel_centroid_cloud = super.getVoxelCentroidCloud();
-	PointCloudT::Ptr full_colored_cloud = super.getColoredCloud();
-	PointNCloudT::Ptr sv_normal_cloud = super.makeSupervoxelNormalCloud(
-			supervoxel_clusters);
-	PointLCloudT::Ptr full_labeled_cloud = super.getLabeledCloud();
+void manageAllPerformances(
+		std::vector<std::map<float, performanceSet> > all_performances) {
+	ofstream file_voi("all_voi.csv");
+	ofstream file_prec("all_precision.csv");
+	ofstream file_recall("all_recall.csv");
+	ofstream file_fscore("all_fscore.csv");
+	ofstream file_wov("all_wov.csv");
 
-	console::print_info("Getting supervoxel adjacency...\n");
-	std::multimap<uint32_t, uint32_t> label_adjacency;
-	super.getSupervoxelAdjacency(label_adjacency);
+	std::vector<std::map<float, performanceSet> >::iterator p_it =
+			all_performances.begin();
+	for (; p_it != all_performances.end(); ++p_it) {
+		std::map<float, performanceSet>::iterator m_it = p_it->begin();
+		for (; m_it != p_it->end(); ++m_it) {
+			file_voi << m_it->second.voi << ";";
+			file_prec << m_it->second.precision << ";";
+			file_recall << m_it->second.recall << ";";
+			file_fscore << m_it->second.fscore << ";";
+			file_wov << m_it->second.wov << ";";
+		}
+		file_voi << "\n";
+		file_prec << "\n";
+		file_recall << "\n";
+		file_fscore << "\n";
+		file_wov << "\n";
 
-	std::map<uint32_t, Supervoxel<PointT>::Ptr> refined_supervoxel_clusters;
-	console::print_info("Refining supervoxels...\n");
-	super.refineSupervoxels(3, refined_supervoxel_clusters);
-
-	PointCloudT::Ptr refined_colored_voxel_cloud = super.getColoredVoxelCloud();
-	PointNCloudT::Ptr refined_sv_normal_cloud = super.makeSupervoxelNormalCloud(
-			refined_supervoxel_clusters);
-	PointLCloudT::Ptr refined_full_labeled_cloud = super.getLabeledCloud();
-	PointCloudT::Ptr refined_full_colored_cloud = super.getColoredCloud();
-
-	// THESE ONLY MAKE SENSE FOR ORGANIZED CLOUDS
-	io::savePNGFile(out_path, *full_colored_cloud, "rgb");
-	io::savePNGFile(refined_out_path, *refined_full_colored_cloud, "rgb");
-	io::savePNGFile(out_label_path, *full_labeled_cloud, "label");
-	io::savePNGFile(refined_out_label_path, *refined_full_labeled_cloud,
-			"label");
-
-	console::print_info("Constructing Boost Graph Library Adjacency List...\n");
-	typedef boost::adjacency_list<boost::setS, boost::setS, boost::undirectedS,
-			uint32_t, float> VoxelAdjacencyList;
-	typedef VoxelAdjacencyList::vertex_descriptor VoxelID;
-	typedef VoxelAdjacencyList::edge_descriptor EdgeID;
-	VoxelAdjacencyList supervoxel_adjacency_list;
-	super.getSupervoxelAdjacencyList(supervoxel_adjacency_list);
-
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////// Segmentation
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-
-	Clustering segmentation;
-	if (rgb_color_space_specified)
-		segmentation.set_delta_c(RGB_EUCL);
-
-	if (manual_lambda_specified) {
-		segmentation.set_merging(MANUAL_LAMBDA);
-		if (lambda != 0)
-			segmentation.set_lambda(lambda);
-	} else if (equalization_specified) {
-		segmentation.set_merging(EQUALIZATION);
-		if (bin_num != 0)
-			segmentation.set_bins_num(bin_num);
 	}
+	file_voi.close();
+	file_prec.close();
+	file_recall.close();
+	file_fscore.close();
+	file_wov.close();
+}
 
-	//segmentation.test_all();
+void printBestPerformances(std::vector<performanceSet> best_performances) {
+	if (best_performances.size() == 1) {
+		performanceSet p = best_performances.back();
+		console::print_info(
+				"Scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\n",
+				p.voi, p.precision, p.recall, p.fscore, p.wov);
+	} else {
+		std::vector<performanceSet>::iterator p_it = best_performances.begin();
+		float mean_v = 0;
+		float mean_p = 0;
+		float mean_r = 0;
+		float mean_f = 0;
+		float mean_w = 0;
+		int count = 0;
+		for (; p_it != best_performances.end(); ++p_it) {
+			count++;
+			mean_v = mean_v + (1 / count) * (p_it->voi - mean_v);
+			mean_p = mean_p + (1 / count) * (p_it->precision - mean_p);
+			mean_r = mean_r + (1 / count) * (p_it->recall - mean_r);
+			mean_f = mean_f + (1 / count) * (p_it->fscore - mean_f);
+			mean_w = mean_w + (1 / count) * (p_it->wov - mean_w);
+			console::print_debug(
+					"Scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\n",
+					p_it->voi, p_it->precision, p_it->recall, p_it->fscore,
+					p_it->wov);
+		}
+		console::print_info(
+				"Average scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\n",
+				mean_v, mean_p, mean_r, mean_f, mean_w);
+	}
+}
 
-	console::print_info("Segmentation initialization...\n");
-	segmentation.set_initialstate(supervoxel_clusters, label_adjacency);
-	if (manual_lambda_specified || adapt_lambda_specified)
-		console::print_debug("Lambda: %f\n", segmentation.get_lambda());
-	console::print_info("Initialization complete\nStarting clustering...\n");
-	segmentation.cluster(thresh);
-	console::print_info("Clustering complete\n");
-	std::pair<ClusteringT, AdjacencyMapT> s = segmentation.get_currentstate();
+void addSupervoxelConnectionsToViewer(PointT &supervoxel_center,
+		PointCloudT &adjacent_supervoxel_centers, std::string supervoxel_name,
+		shared_ptr<visualization::PCLVisualizer> & viewer) {
+	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+	vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+	vtkSmartPointer<vtkPolyLine> polyLine = vtkSmartPointer<vtkPolyLine>::New();
 
-	colored_voxel_cloud = segmentation.get_colored_cloud();
-	label_adjacency = s.second;
+//Iterate through all adjacent points, and add a center point to adjacent point pair
+	PointCloudT::iterator adjacent_itr = adjacent_supervoxel_centers.begin();
+	for (; adjacent_itr != adjacent_supervoxel_centers.end(); ++adjacent_itr) {
+		points->InsertNextPoint(supervoxel_center.data);
+		points->InsertNextPoint(adjacent_itr->data);
+	}
+// Create a polydata to store everything in
+	vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+// Add the points to the dataset
+	polyData->SetPoints(points);
+	polyLine->GetPointIds()->SetNumberOfIds(points->GetNumberOfPoints());
+	for (unsigned int i = 0; i < points->GetNumberOfPoints(); i++)
+		polyLine->GetPointIds()->SetId(i, i);
+	cells->InsertNextCell(polyLine);
+// Add the lines to the dataset
+	polyData->SetLines(cells);
+	viewer->addModelFromPolyData(polyData, supervoxel_name);
+}
 
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////// Visualization
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-
-	console::print_info("Loading visualization...\n");
-	boost::shared_ptr<visualization::PCLVisualizer> viewer(
+void visualize(std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters,
+		PointCloudT::Ptr colored_cloud, PointCloudT::Ptr segm_cloud,
+		PointCloudT::Ptr truth_cloud, PointNCloudT::Ptr normal_cloud,
+		std::multimap<uint32_t, uint32_t> adjacency) {
+	shared_ptr<visualization::PCLVisualizer> viewer(
 			new visualization::PCLVisualizer("3D Viewer"));
 	viewer->setBackgroundColor(0, 0, 0);
 	viewer->registerKeyboardCallback(keyboard_callback, 0);
 
 	bool graph_added = false;
 	std::vector<std::string> poly_names;
-	console::print_info("Loading viewer...");
+	console::print_info("Loading viewer...\n");
 	while (!viewer->wasStopped()) {
 		if (show_voxel_centroids) {
-			if (!viewer->updatePointCloud(voxel_centroid_cloud,
-					"voxel centroids"))
-				viewer->addPointCloud(voxel_centroid_cloud, "voxel centroids");
+			if (!viewer->updatePointCloud(colored_cloud, "voxel centroids"))
+				viewer->addPointCloud(colored_cloud, "voxel centroids");
 			viewer->setPointCloudRenderingProperties(
 					visualization::PCL_VISUALIZER_POINT_SIZE, 2.0,
 					"voxel centroids");
@@ -505,13 +572,11 @@ int main(int argc, char ** argv) {
 
 		if (show_segmentation) {
 			if (!viewer->updatePointCloud(
-					(show_supervoxels) ?
-							refined_colored_voxel_cloud : colored_voxel_cloud,
+					(show_supervoxels) ? truth_cloud : segm_cloud,
 					"colored voxels"))
 				viewer->addPointCloud(
-						(show_supervoxels) ?
-								refined_colored_voxel_cloud :
-								colored_voxel_cloud, "colored voxels");
+						(show_supervoxels) ? truth_cloud : segm_cloud,
+						"colored voxels");
 			viewer->setPointCloudRenderingProperties(
 					visualization::PCL_VISUALIZER_POINT_SIZE, 2.0,
 					"colored voxels");
@@ -523,8 +588,8 @@ int main(int argc, char ** argv) {
 		}
 
 		if (show_supervoxel_normals) {
-			viewer->addPointCloudNormals<PointNormal>(refined_sv_normal_cloud,
-					1, 0.05f, "supervoxel_normals");
+			viewer->addPointCloudNormals<PointNormal>(normal_cloud, 1, 0.05f,
+					"supervoxel_normals");
 		} else if (!show_supervoxel_normals) {
 			viewer->removePointCloud("supervoxel_normals");
 		}
@@ -532,8 +597,8 @@ int main(int argc, char ** argv) {
 		if (show_graph && !graph_added) {
 			poly_names.clear();
 			std::multimap<uint32_t, uint32_t>::iterator label_itr =
-					label_adjacency.begin();
-			for (; label_itr != label_adjacency.end();) {
+					adjacency.begin();
+			for (; label_itr != adjacency.end();) {
 				//First get the label
 				uint32_t supervoxel_label = label_itr->first;
 				//Now get the supervoxel corresponding to the label
@@ -542,10 +607,10 @@ int main(int argc, char ** argv) {
 				//Now we need to iterate through the adjacent supervoxels and make a point cloud of them
 				PointCloudT adjacent_supervoxel_centers;
 				std::multimap<uint32_t, uint32_t>::iterator adjacent_itr =
-						label_adjacency.equal_range(supervoxel_label).first;
+						adjacency.equal_range(supervoxel_label).first;
 				for (;
 						adjacent_itr
-								!= label_adjacency.equal_range(supervoxel_label).second;
+								!= adjacency.equal_range(supervoxel_label).second;
 						++adjacent_itr) {
 					Supervoxel<PointT>::Ptr neighbor_supervoxel =
 							supervoxel_clusters.at(adjacent_itr->second);
@@ -559,7 +624,7 @@ int main(int argc, char ** argv) {
 				addSupervoxelConnectionsToViewer(supervoxel->centroid_,
 						adjacent_supervoxel_centers, ss.str(), viewer);
 				//Move iterator forward to next label
-				label_itr = label_adjacency.upper_bound(supervoxel_label);
+				label_itr = adjacency.upper_bound(supervoxel_label);
 			}
 
 			graph_added = true;
@@ -584,39 +649,12 @@ int main(int argc, char ** argv) {
 		}
 
 		viewer->spinOnce(100);
-		boost::this_thread::sleep(boost::posix_time::microseconds(100000));
+		this_thread::sleep(posix_time::microseconds(100000));
 
 	}
-	return (0);
 }
 
-void addSupervoxelConnectionsToViewer(PointT &supervoxel_center,
-		PointCloudT &adjacent_supervoxel_centers, std::string supervoxel_name,
-		boost::shared_ptr<visualization::PCLVisualizer> & viewer) {
-	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-	vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
-	vtkSmartPointer<vtkPolyLine> polyLine = vtkSmartPointer<vtkPolyLine>::New();
-
-	//Iterate through all adjacent points, and add a center point to adjacent point pair
-	PointCloudT::iterator adjacent_itr = adjacent_supervoxel_centers.begin();
-	for (; adjacent_itr != adjacent_supervoxel_centers.end(); ++adjacent_itr) {
-		points->InsertNextPoint(supervoxel_center.data);
-		points->InsertNextPoint(adjacent_itr->data);
-	}
-	// Create a polydata to store everything in
-	vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
-	// Add the points to the dataset
-	polyData->SetPoints(points);
-	polyLine->GetPointIds()->SetNumberOfIds(points->GetNumberOfPoints());
-	for (unsigned int i = 0; i < points->GetNumberOfPoints(); i++)
-		polyLine->GetPointIds()->SetId(i, i);
-	cells->InsertNextCell(polyLine);
-	// Add the lines to the dataset
-	polyData->SetLines(cells);
-	viewer->addModelFromPolyData(polyData, supervoxel_name);
-}
-
-void printText(boost::shared_ptr<visualization::PCLVisualizer> viewer) {
+void printText(shared_ptr<visualization::PCLVisualizer> viewer) {
 	std::string on_str = "ON";
 	std::string off_str = "OFF";
 	std::string temp =
@@ -652,7 +690,7 @@ void printText(boost::shared_ptr<visualization::PCLVisualizer> viewer) {
 
 }
 
-void removeText(boost::shared_ptr<visualization::PCLVisualizer> viewer) {
+void removeText(shared_ptr<visualization::PCLVisualizer> viewer) {
 	viewer->removeShape("hud_text");
 	viewer->removeShape("voxel_text");
 	viewer->removeShape("supervoxel_text");
