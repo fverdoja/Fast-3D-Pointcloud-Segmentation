@@ -155,7 +155,7 @@ int main(int argc, char ** argv) {
 						"  * please note that only one of this options can be passed at the same time \n\t"
 						"\n\t"
 						"OTHER optional options: \n\t"
-						" -r <label-to-be-removed>       (if ground-truth is provided, removes all points with the given label from the ground-truth)"
+						" -r <label-to-be-removed>       (if ground-truth is provided, removes all points with the given label from the ground-truth)\n\t"
 						" --NT                           (disables use of single camera transform) \n\t"
 						" --V                            (verbose) \n",
 				argv[0]);
