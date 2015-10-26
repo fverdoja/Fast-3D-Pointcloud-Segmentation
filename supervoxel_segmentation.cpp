@@ -148,6 +148,7 @@ int main(int argc, char ** argv) {
 						"SEGMENTATION optional options: \n\t"
 						" -t <threshold>                 (default: auto)\n\t"
 						" --RGB                          (uses the RGB color space for measuring the color distance; if not given, L*A*B* color space is used) \n\t"
+						" --CVX                          (uses the convexity criterion to weigh the geometric distance; if not given, convexity is not considered) \n\t"
 						" --ML [manual-lambda] *         (uses Manual Lambda as merging criterion, if no parameter is given lambda=0.5 is used) \n\t"
 						" --AL                 *         (uses Adaptive lambda as merging criterion) \n\t"
 						" --EQ [bins-number]   *         (uses Equalization as merging criterion, if no parameter is given 200 bins are used) \n\t"
@@ -247,6 +248,7 @@ int main(int argc, char ** argv) {
 
 // Segmentation parameters
 	bool rgb_color_space_specified = console::find_switch(argc, argv, "--RGB");
+	bool convexity_specified = console::find_switch(argc, argv, "--CVX");
 	bool manual_lambda_specified = console::find_switch(argc, argv, "--ML");
 	bool adapt_lambda_specified = console::find_switch(argc, argv, "--AL");
 	bool equalization_specified = console::find_switch(argc, argv, "--EQ");
@@ -384,6 +386,9 @@ int main(int argc, char ** argv) {
 		Clustering segmentation;
 		if (rgb_color_space_specified)
 			segmentation.set_delta_c(RGB_EUCL);
+
+		if (convexity_specified)
+			segmentation.set_delta_g(CONVEX_NORMALS_DIFF);
 
 		if (manual_lambda_specified) {
 			segmentation.set_merging(MANUAL_LAMBDA);

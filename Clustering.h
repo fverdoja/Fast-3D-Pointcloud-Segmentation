@@ -63,7 +63,7 @@ enum ColorDistance {
 	LAB_CIEDE00, RGB_EUCL
 };
 enum GeometricDistance {
-	NORMALS_DIFF
+	NORMALS_DIFF, CONVEX_NORMALS_DIFF
 };
 enum MergingCriterion {
 	MANUAL_LAMBDA, ADAPTIVE_LAMBDA, EQUALIZATION
@@ -79,6 +79,8 @@ class Clustering {
 	bool set_initial_state, init_initial_weights;
 	ClusteringState initial_state, state;
 
+	bool is_convex(Normal norm1, PointT centroid1, Normal norm2,
+			PointT centroid2) const;
 	float normals_diff(Normal norm1, PointT centroid1, Normal norm2,
 			PointT centroid2) const;
 	std::pair<float, float> delta_c_g(SupervoxelT::Ptr supvox1,

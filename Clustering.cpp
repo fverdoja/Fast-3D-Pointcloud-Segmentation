@@ -40,6 +40,22 @@
 
 #include "Clustering.h"
 
+bool Clustering::is_convex(Normal norm1, PointT centroid1, Normal norm2,
+		PointT centroid2) const {
+	Eigen::Vector3f N1 = norm1.getNormalVector3fMap();
+	Eigen::Vector3f C1 = centroid1.getVector3fMap();
+	Eigen::Vector3f N2 = norm2.getNormalVector3fMap();
+	Eigen::Vector3f C2 = centroid2.getVector3fMap();
+
+	Eigen::Vector3f C = C1 - C2;
+	C /= C.norm();
+
+	float cos1 = N1.dot(C);
+	float cos2 = N2.dot(C);
+
+	return cos1 >= cos2;
+}
+
 float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
 		PointT centroid2) const {
 	Eigen::Vector3f N1 = norm1.getNormalVector3fMap();
@@ -47,7 +63,7 @@ float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
 	Eigen::Vector3f N2 = norm2.getNormalVector3fMap();
 	Eigen::Vector3f C2 = centroid2.getVector3fMap();
 
-	Eigen::Vector3f C = C2 - C1;
+	Eigen::Vector3f C = C1 - C2;
 	C /= C.norm();
 
 	float N1xN2 = N1.cross(N2).norm();
@@ -55,15 +71,6 @@ float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
 	float N2_C = std::abs(N2.dot(C));
 
 	float delta_g = (N1xN2 + N1_C + N2_C) / 3;
-
-//	std::cout << "c1 =\n" << C1 << "\n";
-//	std::cout << "c2 =\n" << C2 << "\n";
-//	std::cout << "C =\n" << C << "\n";
-//	std::cout << "N1_C =\n" << N1_C << "\n";
-//	std::cout << "N2_C =\n" << N2_C << "\n";
-//	std::cout <<"n1 =\n"<< N1 << "\n";
-//	std::cout <<"n2 =\n"<< N2 << "\n";
-//	std::cout <<"n1 x n2 =\n"<< N1.cross(N2) << "\n|n1 x n2| = " << N1xN2 << "\n";
 
 	return delta_g;
 }
@@ -87,13 +94,18 @@ std::pair<float, float> Clustering::delta_c_g(SupervoxelT::Ptr supvox1,
 	}
 
 	float delta_g = 0;
+	Normal n1 = supvox1->normal_;
+	Normal n2 = supvox2->normal_;
+	PointT c1 = supvox1->centroid_;
+	PointT c2 = supvox2->centroid_;
 	switch (delta_g_type) {
 	case NORMALS_DIFF:
-		Normal n1 = supvox1->normal_;
-		Normal n2 = supvox2->normal_;
-		PointT c1 = supvox1->centroid_;
-		PointT c2 = supvox2->centroid_;
 		delta_g = normals_diff(n1, c1, n2, c2);
+		break;
+	case CONVEX_NORMALS_DIFF:
+		delta_g = normals_diff(n1, c1, n2, c2);
+		if (is_convex(n1, c1, n2, c2))
+			delta_g *= 0.5;
 	}
 
 	std::pair<float, float> ret(delta_c, delta_g);
@@ -105,9 +117,10 @@ float Clustering::delta(SupervoxelT::Ptr supvox1,
 
 	std::pair<float, float> deltas = delta_c_g(supvox1, supvox2);
 
-//	printf("delta_c = %f | delta_g = %f\n", delta_c, delta_g);
-
 	float delta = t_c(deltas.first) + t_g(deltas.second);
+
+//	printf("delta_c = %f | delta_g = %f | delta = %f\n", deltas.first,
+//			deltas.second, delta);
 	return delta;
 }
 
