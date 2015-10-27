@@ -68,9 +68,9 @@ struct compareXYZ {
 
 struct performanceSet {
 	performanceSet() :
-			voi(0), precision(0), recall(0), fscore(0), wov(0) {
+			voi(0), precision(0), recall(0), fscore(0), wov(0), fpr(0), fnr(0) {
 	}
-	float voi, precision, recall, fscore, wov;
+	float voi, precision, recall, fscore, wov, fpr, fnr;
 };
 
 class Testing {
@@ -78,7 +78,7 @@ class Testing {
 	labelMapT segm_labels, truth_labels;
 	Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic> inter_matrix;
 	Eigen::Array<int64_t, 1, Eigen::Dynamic> matches;
-	float precision, recall, fscore, voi, wov;
+	float precision, recall, fscore, voi, wov, fpr, fnr;
 	bool is_set_segm, is_set_truth;
 
 	void init_performance();
@@ -101,6 +101,8 @@ public:
 	float eval_fscore();
 	float eval_voi();
 	float eval_wov();
+	float eval_fpr();
+	float eval_fnr();
 	performanceSet eval_performance();
 
 	PointLCloudT::Ptr get_segm() const {

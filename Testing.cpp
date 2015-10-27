@@ -46,6 +46,8 @@ void Testing::init_performance() {
 	fscore = -1;
 	voi = -1;
 	wov = -1;
+	fpr = -1;
+	fnr = -1;
 }
 labelMapT Testing::label_map(PointLCloudT::Ptr in) {
 	labelMapT map_temp, map;
@@ -184,6 +186,9 @@ Testing::Testing(PointLCloudT::Ptr s, PointLCloudT::Ptr t) {
 float Testing::eval_precision() {
 	if (precision == -1) {
 		float p = 0;
+		float r = 0;
+		float fp = 0;
+		float fn = 0;
 		for (uint32_t j = 0; j < truth_labels.size(); j++) {
 			int64_t i = matches(j);
 			if (i != -1) {
@@ -191,10 +196,19 @@ float Testing::eval_precision() {
 				float s = (segm_labels.at(i))->size();
 				float g = (truth_labels.at(j))->size();
 				p += inter * g / s;
+				r += inter;
+				fp += (s - inter);
+				fn += (g - inter);
+			} else {
+				float g = (truth_labels.at(j))->size();
+				fn += g;
 			}
 		}
 		float N = truth->size();
 		precision = p / N;
+		recall = r / N;
+		fpr = fp / N;
+		fnr = fn / N;
 	}
 
 	return precision;
@@ -202,16 +216,7 @@ float Testing::eval_precision() {
 
 float Testing::eval_recall() {
 	if (recall == -1) {
-		float r = 0;
-		for (uint32_t j = 0; j < truth_labels.size(); j++) {
-			int64_t i = matches(j);
-			if (i != -1) {
-				float inter = inter_matrix(i, j);
-				r += inter;
-			}
-		}
-		float N = truth->size();
-		recall = r / N;
+		eval_precision();
 	}
 
 	return recall;
@@ -220,8 +225,6 @@ float Testing::eval_recall() {
 float Testing::eval_fscore() {
 	if (precision == -1)
 		eval_precision();
-	if (recall == -1)
-		eval_recall();
 
 	if (precision == 0 && recall == 0) {
 		console::print_warn(
@@ -285,13 +288,31 @@ float Testing::eval_wov() {
 	return wov;
 }
 
+float Testing::eval_fpr() {
+	if (fpr == -1) {
+		eval_precision();
+	}
+
+	return fpr;
+}
+
+float Testing::eval_fnr() {
+	if (fnr == -1) {
+		eval_precision();
+	}
+
+	return fnr;
+}
+
 performanceSet Testing::eval_performance() {
 	performanceSet perf;
 	perf.voi = eval_voi();
 	perf.precision = eval_precision();
-	perf.recall = eval_recall();
+	perf.recall = recall;
 	perf.fscore = eval_fscore();
 	perf.wov = eval_wov();
+	perf.fpr = fpr;
+	perf.fnr = fnr;
 
 	return perf;
 }

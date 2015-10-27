@@ -118,7 +118,8 @@ inline bool isNan(float f) {
 }
 
 void manageAllPerformances(
-		std::vector<std::map<float, performanceSet> > all_performances);
+		std::vector<std::map<float, performanceSet> > all_performances,
+		std::string filename);
 void printBestPerformances(std::vector<performanceSet> best_performances);
 
 void addSupervoxelConnectionsToViewer(PointT &supervoxel_center,
@@ -149,13 +150,14 @@ int main(int argc, char ** argv) {
 						" -t <threshold>                 (default: auto)\n\t"
 						" --RGB                          (uses the RGB color space for measuring the color distance; if not given, L*A*B* color space is used) \n\t"
 						" --CVX                          (uses the convexity criterion to weigh the geometric distance; if not given, convexity is not considered) \n\t"
-						" --ML [manual-lambda] *         (uses Manual Lambda as merging criterion, if no parameter is given lambda=0.5 is used) \n\t"
+						" --ML [manual-lambda] *         (uses Manual Lambda as merging criterion; if no parameter is given, lambda=0.5 is used) \n\t"
 						" --AL                 *         (uses Adaptive lambda as merging criterion) \n\t"
-						" --EQ [bins-number]   *         (uses Equalization as merging criterion, if no parameter is given 200 bins are used) \n\t"
+						" --EQ [bins-number]   *         (uses Equalization as merging criterion; if no parameter is given, 200 bins are used) \n\t"
 						"  * please note that only one of this options can be passed at the same time \n\t"
 						"\n\t"
 						"OTHER optional options: \n\t"
 						" -r <label-to-be-removed>       (if ground-truth is provided, removes all points with the given label from the ground-truth)\n\t"
+						" -f <test-results-filename>     (uses the given name as filename for all test results files; if not given, 'test' is going to be used)\n\t"
 						" --NT                           (disables use of single camera transform) \n\t"
 						" --V                            (verbose) \n",
 				argv[0]);
@@ -174,6 +176,10 @@ int main(int argc, char ** argv) {
 	}
 
 	bool disable_transform = console::find_switch(argc, argv, "--NT");
+
+	std::string test_filename = "test";
+	if (console::find_switch(argc, argv, "-f"))
+		console::parse(argc, argv, "-f", test_filename);
 
 // Input parameters
 	PointCloudT::Ptr cloud = make_shared<PointCloudT>();
@@ -446,7 +452,7 @@ int main(int argc, char ** argv) {
 		}
 	}
 
-	manageAllPerformances(all_performances);
+	manageAllPerformances(all_performances, test_filename);
 
 	printBestPerformances(best_performances);
 
@@ -454,12 +460,15 @@ int main(int argc, char ** argv) {
 }
 
 void manageAllPerformances(
-		std::vector<std::map<float, performanceSet> > all_performances) {
-	ofstream file_voi("all_voi.csv");
-	ofstream file_prec("all_precision.csv");
-	ofstream file_recall("all_recall.csv");
-	ofstream file_fscore("all_fscore.csv");
-	ofstream file_wov("all_wov.csv");
+		std::vector<std::map<float, performanceSet> > all_performances,
+		std::string filename) {
+	ofstream file_voi((filename + "_voi.csv").c_str());
+	ofstream file_prec((filename + "_precision.csv").c_str());
+	ofstream file_recall((filename + "_recall.csv").c_str());
+	ofstream file_fscore((filename + "_fscore.csv").c_str());
+	ofstream file_wov((filename + "_wov.csv").c_str());
+	ofstream file_fpr((filename + "_fpr.csv").c_str());
+	ofstream file_fnr((filename + "_fnr.csv").c_str());
 
 	std::vector<std::map<float, performanceSet> >::iterator p_it =
 			all_performances.begin();
@@ -471,12 +480,16 @@ void manageAllPerformances(
 			file_recall << m_it->second.recall << ";";
 			file_fscore << m_it->second.fscore << ";";
 			file_wov << m_it->second.wov << ";";
+			file_fpr << m_it->second.fpr << ";";
+			file_fnr << m_it->second.fnr << ";";
 		}
 		file_voi << "\n";
 		file_prec << "\n";
 		file_recall << "\n";
 		file_fscore << "\n";
 		file_wov << "\n";
+		file_fpr << "\n";
+		file_fnr << "\n";
 
 	}
 	file_voi.close();
@@ -484,14 +497,16 @@ void manageAllPerformances(
 	file_recall.close();
 	file_fscore.close();
 	file_wov.close();
+	file_fpr.close();
+	file_fnr.close();
 }
 
 void printBestPerformances(std::vector<performanceSet> best_performances) {
 	if (best_performances.size() == 1) {
 		performanceSet p = best_performances.back();
 		console::print_info(
-				"Scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\n",
-				p.voi, p.precision, p.recall, p.fscore, p.wov);
+				"Scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\nFPR\t%f\nFNR\t%f\n",
+				p.voi, p.precision, p.recall, p.fscore, p.wov, p.fpr, p.fnr);
 	} else {
 		std::vector<performanceSet>::iterator p_it = best_performances.begin();
 		float mean_v = 0;
@@ -499,6 +514,8 @@ void printBestPerformances(std::vector<performanceSet> best_performances) {
 		float mean_r = 0;
 		float mean_f = 0;
 		float mean_w = 0;
+		float mean_pr = 0;
+		float mean_nr = 0;
 		int count = 0;
 		for (; p_it != best_performances.end(); ++p_it) {
 			count++;
@@ -507,14 +524,16 @@ void printBestPerformances(std::vector<performanceSet> best_performances) {
 			mean_r = mean_r + (1 / count) * (p_it->recall - mean_r);
 			mean_f = mean_f + (1 / count) * (p_it->fscore - mean_f);
 			mean_w = mean_w + (1 / count) * (p_it->wov - mean_w);
+			mean_pr = mean_pr + (1 / count) * (p_it->fpr - mean_pr);
+			mean_nr = mean_nr + (1 / count) * (p_it->fnr - mean_nr);
 			console::print_debug(
-					"Scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\n",
+					"Scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\nFPR\t%f\nFNR\t%f\n",
 					p_it->voi, p_it->precision, p_it->recall, p_it->fscore,
-					p_it->wov);
+					p_it->wov, p_it->fpr, p_it->fnr);
 		}
 		console::print_info(
-				"Average scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\n",
-				mean_v, mean_p, mean_r, mean_f, mean_w);
+				"Average scores:\nVOI\t%f\nPrec.\t%f\nRecall\t%f\nF-score\t%f\nWOv\t%f\nFPR\t%f\nFNR\t%f\n",
+				mean_v, mean_p, mean_r, mean_f, mean_w, mean_pr, mean_nr);
 	}
 }
 
