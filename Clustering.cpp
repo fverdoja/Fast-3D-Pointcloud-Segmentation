@@ -40,6 +40,170 @@
 
 #include "Clustering.h"
 
+// ALEX CODE
+
+void Clustering::addSupervoxelToObject(uint32_t obj_number,
+		pair<uint32_t, Supervoxel<PointT>::Ptr> supervoxel,
+		map<uint32_t, Object*> &objects_set) {
+
+	Object* tmpObj = new Object();
+
+	// if it's a new object, create it
+	if(objects_set.find(obj_number) == objects_set.end())
+		objects_set.insert(make_pair(obj_number, tmpObj));
+
+	tmpObj = objects_set.find(obj_number)->second;
+	tmpObj->add_supervoxel(supervoxel);
+
+}
+
+int Clustering::findSupervoxelFromObject(uint32_t obj_number,
+		uint32_t supervoxel_label, map<uint32_t, Object*> objects_set) {
+
+	map<uint32_t, Object*>::iterator itr = objects_set.find(obj_number);
+
+	// object <obj_number> doesn't exists
+	if (itr == objects_set.end())
+		return -1;
+	// object <obj_number> effectively contains supervoxel_label
+	else if (itr->second->find_supervoxel(supervoxel_label))
+		return 1;
+	// object <obj_number> doesn't contain supervoxel_label
+	return 0;
+}
+
+int Clustering::removeSupervoxelFromObject(uint32_t obj_number,
+		uint32_t supervoxel_label, map<uint32_t, Object*> &objects_set) {
+	int found = Clustering::findSupervoxelFromObject(obj_number,
+			supervoxel_label, objects_set);
+	if (found > 0)
+		objects_set.find(obj_number)->second->remove_supervoxel(
+				supervoxel_label);
+	return found;
+
+}
+
+bool Clustering::moveSupervoxelFromToObject(uint32_t obj_from, uint32_t obj_to,
+		uint32_t supervoxel_label, map<uint32_t, Object*> &objects_set) {
+	// Expect return 1, we expect to find obj_from and supervoxel_label into
+	int found_from = Clustering::findSupervoxelFromObject(obj_from,
+			supervoxel_label, objects_set);
+
+	if (found_from == 1){
+		Object* tmpObj = objects_set.find(obj_from)->second;
+		pair<uint32_t, Supervoxel<PointT>::Ptr> tmpSupervoxel =
+				tmpObj->get_supervoxel(supervoxel_label);
+		tmpObj->remove_supervoxel(supervoxel_label);
+
+		Clustering::addSupervoxelToObject(obj_to, tmpSupervoxel, objects_set);
+		return true;
+	}
+	return false;
+}
+
+int Clustering::getObjectFromSupervoxelLabel(uint32_t supervoxel_label,
+			map<uint32_t, Object*> objects_set){
+	int obj_number = 1;
+	int result;
+
+	std::map<uint32_t, Object*>::iterator itr = objects_set.begin();
+	for(; itr != objects_set.end(); itr++){
+		if(itr->second->find_supervoxel(supervoxel_label))
+			return obj_number;
+		obj_number++;
+	}
+
+	return -1;
+}
+
+void Clustering::computeDisconnectedGraphs(int obj_index,
+		multimap<uint32_t, uint32_t> adjacency,
+		map<uint32_t, Object*> &objects_set) {
+
+	pair<uint32_t, Object*> currentObj = make_pair(obj_index,
+			objects_set.at(obj_index));
+
+	map<uint32_t, Supervoxel<PointT>::Ptr> current_supervoxel_set =
+			currentObj.second->get_supervoxel_set();
+
+	map<uint32_t, Supervoxel<PointT>::Ptr>::iterator supervoxel_set_itr =
+			current_supervoxel_set.begin();
+
+	// For each supervoxel into current object
+	while (supervoxel_set_itr != current_supervoxel_set.end()) {
+		uint32_t current_supervoxel_label = supervoxel_set_itr->first;
+
+		std::multimap<uint32_t, uint32_t>::iterator adjacent_itr =
+				adjacency.equal_range(current_supervoxel_label).first;
+
+		// Create a set with the current supervoxel and each its adjacencies
+		set<uint32_t> together;
+		if (adjacent_itr
+				!= adjacency.equal_range(current_supervoxel_label).second) {
+			together.insert(adjacent_itr->first);
+
+			for (;
+					adjacent_itr
+							!= adjacency.equal_range(current_supervoxel_label).second;
+					adjacent_itr++) {
+				// if the adjacency found belongs to the same object
+				// we have to proceed and found other adjacency
+				if (current_supervoxel_set.find(adjacent_itr->second)
+						!= current_supervoxel_set.end()) {
+					together.insert(adjacent_itr->second);
+				}
+			}
+
+			if (together.size() > 1) {
+				Clustering::computeAdjacencies(together, adjacency,
+								current_supervoxel_set, objects_set);
+
+				current_supervoxel_set =
+						currentObj.second->get_supervoxel_set();
+				supervoxel_set_itr = current_supervoxel_set.begin();
+
+				if (together.size() < current_supervoxel_set.size()) {
+					set<uint32_t>::iterator tmpItr = together.begin();
+
+					int obj_to = objects_set.size() + 1;
+
+					for (; tmpItr != together.end(); tmpItr++) {
+						Clustering::moveSupervoxelFromToObject(obj_index,
+								obj_to, *tmpItr, objects_set);
+
+					}
+				}
+			}
+		}
+
+		supervoxel_set_itr++;
+	}
+}
+
+
+void Clustering::computeAdjacencies(set<uint32_t> &together,
+		multimap<uint32_t, uint32_t> adjacency,
+		map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set,
+		map<uint32_t, Object*> objects_set) {
+	set<uint32_t>::iterator itr = together.begin();
+
+	// WORKS ONLY (AND I THINK IT'S SO ALWAYS IN THIS PROGRAM)
+	// VISITING ONLY IN ASCENDING ID ORDER (NEIGHBOURS MUST HAVE
+	// ID > PRECEDING NODES, CONVERSELY together MUST BE A VECTOR
+	// AND NODES MUST BE PUSHED IN THE END
+	for (; itr != together.end(); itr++) {
+		multimap<uint32_t, uint32_t>::iterator adj_itr = adjacency.equal_range(
+				*itr).first;
+		for (; adj_itr != adjacency.equal_range(*itr).second; adj_itr++) {
+			if (supervoxel_set.find(adj_itr->second) != supervoxel_set.end()) {
+				together.insert(adj_itr->second);
+			}
+		}
+	}
+}
+
+// END ALEX
+
 bool Clustering::is_convex(Normal norm1, PointT centroid1, Normal norm2,
 		PointT centroid2) const {
 	Eigen::Vector3f N1 = norm1.getNormalVector3fMap();
@@ -214,7 +378,7 @@ void Clustering::init_merging_parameters(DeltasDistribT deltas_c,
 
 std::map<short, float> Clustering::compute_cdf(DeltasDistribT dist) {
 	std::map<short, float> cdf;
-	int bins[bins_num] = { };
+	int bins[bins_num];// = { };
 
 	DeltasDistribT::iterator d_itr, d_itr_end;
 	d_itr = dist.begin();

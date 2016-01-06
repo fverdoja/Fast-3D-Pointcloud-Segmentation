@@ -48,8 +48,10 @@
 #include "ColorUtilities.h"
 #include "ClusteringState.h"
 #include "Testing.h"
+#include "Object.h"
 
 using namespace pcl;
+using namespace std;
 
 typedef PointXYZRGBA PointT;
 typedef PointXYZL PointLT;
@@ -104,6 +106,30 @@ class Clustering {
 public:
 	Clustering();
 	Clustering(ColorDistance c, GeometricDistance g, MergingCriterion m);
+
+	// ALEX CODE
+	// adds one supervoxel to the obj_number object of the map
+	static void addSupervoxelToObject(uint32_t obj_number,
+			pair<uint32_t, Supervoxel<PointT>::Ptr> supervoxel,
+			map<uint32_t, Object*> &objects_set);
+	static int findSupervoxelFromObject(uint32_t obj_number,
+				uint32_t supervoxel_label,
+				map<uint32_t, Object*> objects_set);
+	static int removeSupervoxelFromObject(uint32_t obj_number,
+			uint32_t supervoxel_label,
+			map<uint32_t, Object*> &objects_set);
+	static bool moveSupervoxelFromToObject(uint32_t obj_from, uint32_t obj_to,
+			uint32_t supervoxel_label, map<uint32_t, Object*> &objects_set);
+	static int getObjectFromSupervoxelLabel(uint32_t supervoxel_label,
+			map<uint32_t, Object*> objects_set);
+	static void computeDisconnectedGraphs( int obj_index,
+			std::multimap<uint32_t, uint32_t> adjacency,
+			map<uint32_t, Object*> &objects_set);
+	static void computeAdjacencies(set<uint32_t> &together,
+			multimap<uint32_t, uint32_t> adjacency,
+			map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set,
+			map<uint32_t, Object*> objects_set);
+	// END ALEX
 
 	void set_delta_c(ColorDistance d) {
 		delta_c_type = d;

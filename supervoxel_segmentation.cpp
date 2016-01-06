@@ -55,14 +55,20 @@
 #include <vtkImageData.h>
 #include <vtkImageFlip.h>
 #include <vtkPolyLine.h>
+#include <cmath>
+#include <map>
+#include <stdio.h>
+#include <stdlib.h>
 
 //#include <boost/filesystem.hpp>
 
 #include "Clustering.h"
 #include "Testing.h"
+#include "Object.h"
 
 using namespace boost;
 using namespace pcl;
+using namespace std;
 
 // Types
 typedef PointXYZRGBA PointT;
@@ -74,6 +80,7 @@ typedef PointCloud<PointLT> PointLCloudT;
 typedef PointXYZRGBL PointLCT;
 typedef PointCloud<PointLCT> PointLCCloudT;
 
+std::map<uint32_t, Object*> objects_set;
 bool show_voxel_centroids = false;
 bool show_segmentation = true;
 bool show_supervoxels = false;
@@ -450,6 +457,7 @@ int main(int argc, char ** argv) {
 					colored_voxel_cloud, colored_truth_cloud,
 					refined_sv_normal_cloud, label_adjacency);
 		}
+
 	}
 
 	manageAllPerformances(all_performances, test_filename);
@@ -579,6 +587,7 @@ void visualize(std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters,
 		if (show_voxel_centroids) {
 			if (!viewer->updatePointCloud(colored_cloud, "voxel centroids"))
 				viewer->addPointCloud(colored_cloud, "voxel centroids");
+
 			viewer->setPointCloudRenderingProperties(
 					visualization::PCL_VISUALIZER_POINT_SIZE, 2.0,
 					"voxel centroids");
@@ -620,27 +629,138 @@ void visualize(std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters,
 
 		if (show_graph && !graph_added) {
 			poly_names.clear();
+
+			// ALEX CODE
+			// Print supervoxel label next to each centroid and
+			// split table from rest of objects
+			// supposing the last centroid is on table
+			// the blue label is the referring point (last centroid)
+			// the green ones are object labels
+			// the red ones are table labels
+			// tolerance has been tested in test25, test30, test50 cloud points
+			int tmpIndex = 0;
+			float tolerance = 0.03f;
+			ostringstream convert;
+			Supervoxel<PointT>::Ptr referringPoint;
+			uint32_t referringPoint_label;
+			Eigen::Vector3f tmpVect;
+			std::map<uint32_t, Supervoxel<PointT>::Ptr>::iterator supervoxel_itr;
+			Object* tmpObj;
+			ObjectColor c;
+
+			// last point
+			supervoxel_itr = supervoxel_clusters.end();
+			supervoxel_itr--;
+			convert << "[" << supervoxel_itr->first << "]";
+			referringPoint_label = supervoxel_itr->first;
+			referringPoint = supervoxel_itr->second;
+			/*Clustering::addSupervoxelToObject(1,
+					make_pair(supervoxel_itr->first, supervoxel_itr->second),
+					objects_set);*/
+			//viewer->addText3D(convert.str(), referringPoint->centroid_,0.01, 0.0, 0.0, 1.0);
+
+			supervoxel_itr = supervoxel_clusters.begin();
+
+			for(; supervoxel_itr != supervoxel_clusters.end(); supervoxel_itr++, tmpIndex++){
+				uint32_t supervoxel_label = supervoxel_itr->first;
+				Supervoxel<PointT>::Ptr supervoxel = supervoxel_itr->second;
+
+				//ostringstream convert;
+				convert.str("");
+				convert.clear();
+				convert << "[" << supervoxel_label << "]";
+
+				tmpVect = referringPoint->centroid_.getArray3fMap() - supervoxel->centroid_.getArray3fMap();
+				tmpVect /= tmpVect.norm();
+
+				Eigen::Vector3f referringPointNormal = referringPoint->normal_.getNormalVector3fMap();
+
+
+				// Plane centroids
+				if(abs(referringPointNormal.dot(tmpVect)) < tolerance){
+					Clustering::addSupervoxelToObject(1,
+							make_pair(supervoxel_label, supervoxel), objects_set);
+					tmpObj = (objects_set.find(1)->second);
+					c = tmpObj->get_color();
+				}
+				// Objects supervoxels
+				else {
+					Clustering::addSupervoxelToObject(2,
+							make_pair(supervoxel_label, supervoxel), objects_set);
+					tmpObj = (objects_set.find(2)->second);
+					c = tmpObj->get_color();
+				}
+				//viewer->addText3D(convert.str(), supervoxel->centroid_, 0.01, c.r, c.g, c.b);
+
+			}
+
+			Clustering::moveSupervoxelFromToObject(2, 1, referringPoint_label,
+					objects_set);
+
+			map<uint32_t, Object*>::iterator obSetItr = objects_set.begin();
+			for(; obSetItr != objects_set.end(); obSetItr++){
+				cout << "Oggetto n. " << obSetItr->first;
+				obSetItr->second->print();
+				cout << "\n";
+			}
+
+
+			cout << "\nComputing Disconnected Graphs..\n";
+			Clustering::computeDisconnectedGraphs(2, adjacency, objects_set);
+
+			/*
+			obSetItr = objects_set.begin();
+			for (; obSetItr != objects_set.end(); obSetItr++) {
+				cout << "Oggetto n. " << obSetItr->first;
+				obSetItr->second->print();
+				cout << "\n";
+			}*/
+
+			// updating view
+
+			obSetItr = objects_set.begin();
+			for(; obSetItr != objects_set.end(); obSetItr++){
+				cout << "Oggetto n. " << obSetItr->first;
+				obSetItr->second->print();
+				cout << "\n";
+
+				map<uint32_t, Supervoxel<PointT>::Ptr> tmp_set = obSetItr->second->get_supervoxel_set();
+				map<uint32_t, Supervoxel<PointT>::Ptr>::iterator set_itr = tmp_set.begin();
+
+				for(; set_itr != tmp_set.end(); set_itr++){
+					convert.str("");
+					convert.clear();
+					convert << "[" << set_itr->first << "]";
+					//viewer->removeText3D(convert.str());
+					c = obSetItr->second->get_color();
+					viewer->addText3D(convert.str(), set_itr->second->centroid_, 0.01, c.r, c.g, c.b);
+				}
+			}
+
+			// END ALEX
+
 			std::multimap<uint32_t, uint32_t>::iterator label_itr =
 					adjacency.begin();
 			for (; label_itr != adjacency.end();) {
 				//First get the label
 				uint32_t supervoxel_label = label_itr->first;
+
 				//Now get the supervoxel corresponding to the label
 				Supervoxel<PointT>::Ptr supervoxel = supervoxel_clusters.at(
 						supervoxel_label);
+
 				//Now we need to iterate through the adjacent supervoxels and make a point cloud of them
 				PointCloudT adjacent_supervoxel_centers;
 				std::multimap<uint32_t, uint32_t>::iterator adjacent_itr =
 						adjacency.equal_range(supervoxel_label).first;
-				for (;
-						adjacent_itr
-								!= adjacency.equal_range(supervoxel_label).second;
-						++adjacent_itr) {
+
+				for (; adjacent_itr != adjacency.equal_range(supervoxel_label).second; ++adjacent_itr) {
 					Supervoxel<PointT>::Ptr neighbor_supervoxel =
 							supervoxel_clusters.at(adjacent_itr->second);
 					adjacent_supervoxel_centers.push_back(
 							neighbor_supervoxel->centroid_);
 				}
+
 				//Now we make a name for this polygon
 				std::stringstream ss;
 				ss << "supervoxel_" << supervoxel_label;
@@ -649,6 +769,7 @@ void visualize(std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters,
 						adjacent_supervoxel_centers, ss.str(), viewer);
 				//Move iterator forward to next label
 				label_itr = adjacency.upper_bound(supervoxel_label);
+
 			}
 
 			graph_added = true;

@@ -44,7 +44,8 @@ const LookupTable ColorUtilities::glasbey = ColorUtilities::init_glasbey();
 
 LookupTable ColorUtilities::init_glasbey() {
 	LookupTable glas;
-	std::string path = "../Src/glasbey.lut";
+	std::string path = "../src/glasbey.lut";
+	//std::string path = "./glasbey.lut";
 
 	std::ifstream f;
 	f.open(path.c_str());
