@@ -44,6 +44,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
+#include <math.h>
 
 #include "ColorUtilities.h"
 #include "ClusteringState.h"
@@ -69,6 +70,11 @@ enum GeometricDistance {
 };
 enum MergingCriterion {
 	MANUAL_LAMBDA, ADAPTIVE_LAMBDA, EQUALIZATION
+};
+
+struct edge {
+	uint32_t node_a, node_b;
+	float distance;
 };
 
 class Clustering {
@@ -97,7 +103,7 @@ class Clustering {
 	float t_c(float delta_c) const;
 	float t_g(float delta_g) const;
 	void cluster(ClusteringState start, float threshold);
-	void merge(std::pair<uint32_t, uint32_t> supvox_ids);
+	//void merge(std::pair<uint32_t, uint32_t> supvox_ids);
 
 	static void clear_adjacency(AdjacencyMapT * adjacency);
 	static bool contains(WeightMapT w, uint32_t i1, uint32_t i2);
@@ -113,22 +119,35 @@ public:
 			pair<uint32_t, Supervoxel<PointT>::Ptr> supervoxel,
 			map<uint32_t, Object*> &objects_set);
 	static int findSupervoxelFromObject(uint32_t obj_number,
-				uint32_t supervoxel_label,
-				map<uint32_t, Object*> objects_set);
+			uint32_t supervoxel_label, map<uint32_t, Object*> objects_set);
 	static int removeSupervoxelFromObject(uint32_t obj_number,
-			uint32_t supervoxel_label,
-			map<uint32_t, Object*> &objects_set);
+			uint32_t supervoxel_label, map<uint32_t, Object*> &objects_set);
 	static bool moveSupervoxelFromToObject(uint32_t obj_from, uint32_t obj_to,
 			uint32_t supervoxel_label, map<uint32_t, Object*> &objects_set);
 	static int getObjectFromSupervoxelLabel(uint32_t supervoxel_label,
 			map<uint32_t, Object*> objects_set);
-	static void computeDisconnectedGraphs( int obj_index,
+	static void computeDisconnectedGraphs(int obj_index,
 			std::multimap<uint32_t, uint32_t> adjacency,
 			map<uint32_t, Object*> &objects_set);
-	static void computeAdjacencies(set<uint32_t> &together,
+	static void computeAdjacencies(list<uint32_t> &together,
 			multimap<uint32_t, uint32_t> adjacency,
 			map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set,
 			map<uint32_t, Object*> objects_set);
+	static map<uint32_t, Supervoxel<PointT>::Ptr> getGraphSupervoxels(
+			multimap<uint32_t, uint32_t> adjacency,
+			map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set,
+			map<uint32_t, Supervoxel<PointT>::Ptr> &graph_supervoxel);
+	static void cutAdjacencies(uint32_t label,
+			multimap<uint32_t, uint32_t>& adjacency);
+	static void cutAdjacencies(uint32_t label, float max_distance,
+			set<uint32_t>& visited, multimap<uint32_t, uint32_t>& adjacency,
+			map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set);
+	static void edgeCutter(multimap<uint32_t, uint32_t>& adjacency,
+			 map<uint32_t, Object*> objects_set, float toll_multiplier);
+	static bool compare_edge (const edge& first, const edge& second);
+	void mergeSupervoxel(std::pair<uint32_t, uint32_t> supvox_ids);
+	ClusteringState getState();
+	void merge(std::pair<uint32_t, uint32_t> supvox_ids);
 	// END ALEX
 
 	void set_delta_c(ColorDistance d) {

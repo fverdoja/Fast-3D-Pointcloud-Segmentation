@@ -88,7 +88,6 @@ bool Clustering::moveSupervoxelFromToObject(uint32_t obj_from, uint32_t obj_to,
 	// Expect return 1, we expect to find obj_from and supervoxel_label into
 	int found_from = Clustering::findSupervoxelFromObject(obj_from,
 			supervoxel_label, objects_set);
-
 	if (found_from == 1){
 		Object* tmpObj = objects_set.find(obj_from)->second;
 		pair<uint32_t, Supervoxel<PointT>::Ptr> tmpSupervoxel =
@@ -133,73 +132,222 @@ void Clustering::computeDisconnectedGraphs(int obj_index,
 	while (supervoxel_set_itr != current_supervoxel_set.end()) {
 		uint32_t current_supervoxel_label = supervoxel_set_itr->first;
 
-		std::multimap<uint32_t, uint32_t>::iterator adjacent_itr =
-				adjacency.equal_range(current_supervoxel_label).first;
-
 		// Create a set with the current supervoxel and each its adjacencies
-		set<uint32_t> together;
-		if (adjacent_itr
-				!= adjacency.equal_range(current_supervoxel_label).second) {
-			together.insert(adjacent_itr->first);
+		list<uint32_t> together;
 
-			for (;
-					adjacent_itr
-							!= adjacency.equal_range(current_supervoxel_label).second;
-					adjacent_itr++) {
-				// if the adjacency found belongs to the same object
-				// we have to proceed and found other adjacency
-				if (current_supervoxel_set.find(adjacent_itr->second)
-						!= current_supervoxel_set.end()) {
-					together.insert(adjacent_itr->second);
-				}
+		together.push_back(current_supervoxel_label);
+
+		Clustering::computeAdjacencies(together, adjacency,
+				current_supervoxel_set, objects_set);
+
+		if (together.size() < current_supervoxel_set.size()) {
+
+			int obj_to = objects_set.size() + 1;
+
+			list<uint32_t>::iterator tmpItr = together.begin();
+
+			tmpItr = together.begin();
+			for (; tmpItr != together.end(); tmpItr++) {
+				Clustering::moveSupervoxelFromToObject(obj_index, obj_to,
+						*tmpItr, objects_set);
+
 			}
 
-			if (together.size() > 1) {
-				Clustering::computeAdjacencies(together, adjacency,
-								current_supervoxel_set, objects_set);
-
-				current_supervoxel_set =
-						currentObj.second->get_supervoxel_set();
-				supervoxel_set_itr = current_supervoxel_set.begin();
-
-				if (together.size() < current_supervoxel_set.size()) {
-					set<uint32_t>::iterator tmpItr = together.begin();
-
-					int obj_to = objects_set.size() + 1;
-
-					for (; tmpItr != together.end(); tmpItr++) {
-						Clustering::moveSupervoxelFromToObject(obj_index,
-								obj_to, *tmpItr, objects_set);
-
-					}
-				}
-			}
+			current_supervoxel_set = currentObj.second->get_supervoxel_set();
+			supervoxel_set_itr = current_supervoxel_set.begin();
 		}
 
 		supervoxel_set_itr++;
 	}
+
 }
 
 
-void Clustering::computeAdjacencies(set<uint32_t> &together,
+void Clustering::computeAdjacencies(list<uint32_t> &together,
 		multimap<uint32_t, uint32_t> adjacency,
 		map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set,
 		map<uint32_t, Object*> objects_set) {
-	set<uint32_t>::iterator itr = together.begin();
 
-	// WORKS ONLY (AND I THINK IT'S SO ALWAYS IN THIS PROGRAM)
-	// VISITING ONLY IN ASCENDING ID ORDER (NEIGHBOURS MUST HAVE
-	// ID > PRECEDING NODES, CONVERSELY together MUST BE A VECTOR
-	// AND NODES MUST BE PUSHED IN THE END
+	list<uint32_t>::iterator itr = together.begin();
+
 	for (; itr != together.end(); itr++) {
 		multimap<uint32_t, uint32_t>::iterator adj_itr = adjacency.equal_range(
 				*itr).first;
+
 		for (; adj_itr != adjacency.equal_range(*itr).second; adj_itr++) {
 			if (supervoxel_set.find(adj_itr->second) != supervoxel_set.end()) {
-				together.insert(adj_itr->second);
+				if (find(together.begin(), together.end(), adj_itr->second)
+						== together.end()) {
+					together.push_back(adj_itr->second);
+				}
 			}
 		}
 	}
+}
+
+map<uint32_t, Supervoxel<PointT>::Ptr> Clustering::getGraphSupervoxels(
+		multimap<uint32_t, uint32_t> adjacency,
+		map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set,
+		map<uint32_t, Supervoxel<PointT>::Ptr> &graph_supervoxel) {
+
+	multimap<uint32_t, uint32_t>::iterator itr = adjacency.begin();
+
+
+	for (; itr != adjacency.end(); itr++) {
+		if(graph_supervoxel.find(itr->first) == graph_supervoxel.end())
+			graph_supervoxel.insert(make_pair(itr->first, supervoxel_set.find(itr->first)->second));
+
+		multimap<uint32_t, uint32_t>::iterator adj_itr = adjacency.equal_range(
+			itr->first).first;
+		set<uint32_t> tmp;
+
+		for (; adj_itr != adjacency.equal_range(itr->first).second; adj_itr++) {
+			if (supervoxel_set.find(adj_itr->second) != supervoxel_set.end())
+				tmp.insert(adj_itr->second);
+
+		}
+
+		for(set<uint32_t>::iterator it = tmp.begin(); it != tmp.end(); it++){
+			if(graph_supervoxel.find(*it) == graph_supervoxel.end())
+				graph_supervoxel.insert(make_pair(*it, supervoxel_set.find(*it)->second));
+		}
+	}
+	return graph_supervoxel;
+}
+
+void Clustering::cutAdjacencies(uint32_t label, multimap<uint32_t, uint32_t>& adjacency) {
+	multimap<uint32_t, uint32_t>::iterator it = adjacency.begin();
+
+	adjacency.erase(label);
+
+	for(; it != adjacency.end(); it++){
+		if(it->second == label)
+			adjacency.erase(it);
+	}
+}
+
+void Clustering::cutAdjacencies(uint32_t label, float max_distance,
+		set<uint32_t>& visited, multimap<uint32_t, uint32_t>& adjacency,
+		map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set) {
+
+	multimap<uint32_t, uint32_t>::iterator it = adjacency.begin();
+	visited.insert(label);
+
+	for(; it != adjacency.end(); it++){
+
+		if(it->first == label || it->second == label){
+
+			uint32_t other_label = it->first == label ? it->second : it->first;
+
+			if (supervoxel_set.find(other_label) != supervoxel_set.end() &&
+					visited.find(other_label) == visited.end()) {
+
+				PointXYZRGBA label_supervoxel =
+						supervoxel_set.find(label)->second->centroid_;
+
+				PointXYZRGBA other_supervoxel =
+						supervoxel_set.find(other_label)->second->centroid_;
+
+				float distance = sqrt(
+						pow((label_supervoxel.x - other_supervoxel.x), 2.0)
+								+ pow((label_supervoxel.y - other_supervoxel.y),
+										2.0)
+								+ pow((label_supervoxel.z - other_supervoxel.z),
+										2.0));
+
+				if (distance < max_distance)
+					cutAdjacencies(other_label, max_distance, visited,
+							adjacency, supervoxel_set);
+				else
+					adjacency.erase(it);
+			}
+		}
+	}
+}
+
+void Clustering::edgeCutter(multimap<uint32_t, uint32_t>& adjacency,
+		 map<uint32_t, Object*> objects_set, float toll_multiplier) {
+	//float toll_multiplier = 1.5;
+	list<edge> edge_list;
+	list<edge>::iterator edge_itr = edge_list.begin();
+	map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_set = objects_set.at(2)->get_supervoxel_set();
+
+	edge_itr++;
+
+	multimap<uint32_t, uint32_t>::iterator adj_itr = adjacency.begin();
+	for (; adj_itr != adjacency.end(); adj_itr++) {
+		edge *tmp;
+		tmp->node_a = adj_itr->first;
+		tmp->node_b = adj_itr->second;
+		map<uint32_t, Supervoxel<PointT>::Ptr>::iterator it_a =
+				supervoxel_set.find(adj_itr->first);
+		map<uint32_t, Supervoxel<PointT>::Ptr>::iterator it_b =
+				supervoxel_set.find(adj_itr->second);
+		if (it_a != supervoxel_set.end() && it_b != supervoxel_set.end()) {
+			tmp->distance = sqrt(
+					pow((it_a->second->centroid_.x - it_b->second->centroid_.x),
+							2.0)
+							+ pow(
+									(it_a->second->centroid_.y
+											- it_b->second->centroid_.y), 2.0)
+							+ pow(
+									(it_a->second->centroid_.z
+											- it_b->second->centroid_.z), 2.0));
+			edge_list.insert(edge_itr, *tmp);
+		}
+	}
+
+	edge_list.sort(Clustering::compare_edge);
+
+	//cout << "Edges:";
+	for (edge_itr = edge_list.begin(); edge_itr != edge_list.end();
+			edge_itr++) {
+		//cout << "\n[" << edge_itr->distance << "] " << edge_itr->node_a << " - "
+		//		<< edge_itr->node_b;
+
+		set<uint32_t> visited;
+		float max_distance = edge_itr->distance * toll_multiplier;
+		Clustering::cutAdjacencies(edge_itr->node_a, max_distance, visited,
+				adjacency, supervoxel_set);
+		Clustering::cutAdjacencies(edge_itr->node_b, max_distance, visited,
+						adjacency, supervoxel_set);
+
+	}
+
+}
+
+
+bool Clustering::compare_edge (const edge& first, const edge& second){
+	return first.distance < second.distance;
+}
+
+void Clustering::mergeSupervoxel(std::pair<uint32_t, uint32_t> supvox_ids) {
+	SupervoxelT::Ptr sup1 = state.segments.at(supvox_ids.first);
+	SupervoxelT::Ptr sup2 = state.segments.at(supvox_ids.second);
+	SupervoxelT::Ptr sup_new = boost::make_shared<SupervoxelT>();
+
+	*(sup_new->voxels_) = *(sup1->voxels_) + *(sup2->voxels_);
+	*(sup_new->normals_) = *(sup1->normals_) + *(sup2->normals_);
+
+	PointT new_centr;
+	computeCentroid(*(sup_new->voxels_), new_centr);
+	sup_new->centroid_ = new_centr;
+
+	Eigen::Vector4f new_norm;
+	float new_curv;
+	computePointNormal(*(sup_new->voxels_), new_norm, new_curv);
+	flipNormalTowardsViewpoint(sup_new->centroid_, 0, 0, 0, new_norm);
+	new_norm[3] = 0.0f;
+	new_norm.normalize();
+	sup_new->normal_.normal_x = new_norm[0];
+	sup_new->normal_.normal_y = new_norm[1];
+	sup_new->normal_.normal_z = new_norm[2];
+	sup_new->normal_.curvature = new_curv;
+
+	state.segments.erase(supvox_ids.first);
+	state.segments.erase(supvox_ids.second);
+	state.segments.insert(
+			std::pair<uint32_t, SupervoxelT::Ptr>(supvox_ids.first, sup_new));
 }
 
 // END ALEX
@@ -523,6 +671,10 @@ void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
 		}
 	}
 	state.weight_map = new_map;
+}
+
+ClusteringState Clustering::getState(){
+	return state;
 }
 
 void Clustering::clear_adjacency(AdjacencyMapT * adjacency) {

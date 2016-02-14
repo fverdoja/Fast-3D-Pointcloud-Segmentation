@@ -36,8 +36,12 @@ void Object::add_supervoxel(std::pair<uint32_t, Supervoxel<PointT>::Ptr> s) {
 }
 
 bool Object::remove_supervoxel(uint32_t s) {
-	if(supervoxel_set.erase(s) == 1)
+	map<uint32_t, Supervoxel<PointT>::Ptr>::iterator it;
+	it = supervoxel_set.find(s);
+	if (it != supervoxel_set.end()) {
+		supervoxel_set.erase(it->first);
 		return true;
+	}
 	return false;
 }
 
