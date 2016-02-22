@@ -274,17 +274,18 @@ void Clustering::edgeCutter(multimap<uint32_t, uint32_t>& adjacency,
 
 	edge_itr++;
 
+
 	multimap<uint32_t, uint32_t>::iterator adj_itr = adjacency.begin();
 	for (; adj_itr != adjacency.end(); adj_itr++) {
-		edge *tmp;
-		tmp->node_a = adj_itr->first;
-		tmp->node_b = adj_itr->second;
+		edge tmp;
+		tmp.node_a = adj_itr->first;
+		tmp.node_b = adj_itr->second;
 		map<uint32_t, Supervoxel<PointT>::Ptr>::iterator it_a =
 				supervoxel_set.find(adj_itr->first);
 		map<uint32_t, Supervoxel<PointT>::Ptr>::iterator it_b =
 				supervoxel_set.find(adj_itr->second);
 		if (it_a != supervoxel_set.end() && it_b != supervoxel_set.end()) {
-			tmp->distance = sqrt(
+			tmp.distance = sqrt(
 					pow((it_a->second->centroid_.x - it_b->second->centroid_.x),
 							2.0)
 							+ pow(
@@ -293,7 +294,7 @@ void Clustering::edgeCutter(multimap<uint32_t, uint32_t>& adjacency,
 							+ pow(
 									(it_a->second->centroid_.z
 											- it_b->second->centroid_.z), 2.0));
-			edge_list.insert(edge_itr, *tmp);
+			edge_list.insert(edge_itr, tmp);
 		}
 	}
 
@@ -349,6 +350,223 @@ void Clustering::mergeSupervoxel(std::pair<uint32_t, uint32_t> supvox_ids) {
 	state.segments.insert(
 			std::pair<uint32_t, SupervoxelT::Ptr>(supvox_ids.first, sup_new));
 }
+
+void Clustering::analyze_graph(Clustering& segmentation,
+		multimap<uint32_t, uint32_t>& adjacency, float toll_multiplier) {
+	// ALEX CODE
+	// Print supervoxel label next to each centroid and
+	// split table from rest of objects
+	// tested on test: 50,48,46,30,25
+	std::map<uint32_t, Object*> objects_set;
+	int tmpIndex = 0;
+	float tolerance = 0.03f;				//0.085f;
+	ostringstream convert;
+	Supervoxel<PointT>::Ptr referringPoint;
+	uint32_t referringPoint_label;
+	Eigen::Vector3f tmpVect;
+	std::map<uint32_t, Supervoxel<PointT>::Ptr>::iterator supervoxel_itr,
+			max_points_supervoxel;
+	map<uint32_t, Supervoxel<PointT>::Ptr> graph_supervoxels, tmp_supervoxels;
+	multimap<uint32_t, uint32_t>::iterator adj_itr;
+	multimap<uint32_t, uint32_t> adjacency_list;
+	Object* tmpObj;
+	ObjectColor c;
+
+	for(adj_itr = adjacency.begin(); adj_itr != adjacency.end(); adj_itr++){
+		adjacency_list.insert(pair<uint32_t, uint32_t>(adj_itr->first, adj_itr->second));
+	}
+
+	Clustering::getGraphSupervoxels(adjacency_list, segmentation.getState().get_segments(),
+			graph_supervoxels);
+
+	// BEGIN PLANE-OBJECTS DIFFERENTIATION
+
+	supervoxel_itr = graph_supervoxels.begin();
+	max_points_supervoxel = supervoxel_itr;
+	for (; supervoxel_itr != graph_supervoxels.end(); supervoxel_itr++) {
+		PointCloud<PointT>::Ptr max_voxels =
+				max_points_supervoxel->second->voxels_;
+		PointCloud<PointT>::Ptr itr_voxels = supervoxel_itr->second->voxels_;
+		if (max_voxels->size() < itr_voxels->size())
+			max_points_supervoxel = supervoxel_itr;
+	}
+	supervoxel_itr = max_points_supervoxel;
+	referringPoint_label = supervoxel_itr->first;
+	referringPoint = supervoxel_itr->second;
+
+	// NOT UNCOMMENT
+	/*Clustering::addSupervoxelToObject(1,
+	 make_pair(supervoxel_itr->first, supervoxel_itr->second),
+	 objects_set);*/
+	//viewer->addText3D(convert.str(), referringPoint->centroid_,0.01, 0.0, 0.0, 1.0);
+	supervoxel_itr = graph_supervoxels.begin();
+
+	for (; supervoxel_itr != graph_supervoxels.end();
+			supervoxel_itr++, tmpIndex++) {
+		uint32_t supervoxel_label = supervoxel_itr->first;
+		Supervoxel<PointT>::Ptr supervoxel = supervoxel_itr->second;
+
+		convert.str("");
+		convert.clear();
+		convert << "[" << supervoxel_label << "]";
+
+		tmpVect = referringPoint->centroid_.getArray3fMap()
+				- supervoxel->centroid_.getArray3fMap();
+		tmpVect /= tmpVect.norm();
+
+		Eigen::Vector3f referringPointNormal =
+				referringPoint->normal_.getNormalVector3fMap();
+
+		// Plane centroids
+		if (abs(referringPointNormal.dot(tmpVect)) < tolerance) {
+			Clustering::addSupervoxelToObject(1,
+					make_pair(supervoxel_label, supervoxel), objects_set);
+			//Clustering::cutAdjacencies(supervoxel_label, adjacency_list);
+			tmpObj = (objects_set.find(1)->second);
+			c = tmpObj->get_color();
+		}
+		// Objects supervoxels
+		else {
+			Clustering::addSupervoxelToObject(2,
+					make_pair(supervoxel_label, supervoxel), objects_set);
+			tmpObj = (objects_set.find(2)->second);
+			c = tmpObj->get_color();
+		}
+		//viewer->addText3D(convert.str(), supervoxel->centroid_, 0.01, c.r, c.g, c.b);
+
+	}
+
+	Clustering::moveSupervoxelFromToObject(2, 1, referringPoint_label,
+			objects_set);
+
+	// END PLANE-OBJECTS DIFFERENTIATION
+
+	// BEGIN Adding all connections (es. 1->71, 71->1) to adjacency_list list
+	adj_itr = adjacency_list.begin();
+	for (; adj_itr != adjacency_list.end(); adj_itr++) {
+		std::multimap<uint32_t, uint32_t>::iterator adjacent_itr =
+				adjacency_list.equal_range(adj_itr->second).first;
+		bool found = false;
+		for (;
+				adjacent_itr != adjacency_list.equal_range(adj_itr->second).second
+						&& !found; adjacent_itr++) {
+			if (adjacent_itr->second == adj_itr->first)
+				found = true;
+		}
+		if (!found)
+			adjacency_list.insert(make_pair(adj_itr->second, adj_itr->first));
+	}
+	// END Adding all connections (es. 1->71, 71->1) to adjacency_list list
+
+	// BEGIN Print only elements of adj_list connected to the graph
+	/*adj_itr = adjacency_list.begin();
+	for (; adj_itr != adjacency_list.end(); adj_itr++)
+		if (Clustering::findSupervoxelFromObject(2, adj_itr->first, objects_set)
+				> 0) {
+			if (Clustering::findSupervoxelFromObject(2, adj_itr->second,
+					objects_set) > 0) {
+				cout << adj_itr->first << " -> " << adj_itr->second << "\n";
+			}
+		}
+	*/
+	// END Print only elements of adj_list connected to the graph
+
+	// BEGIN cut plane-objects adjacencies
+	tmp_supervoxels = objects_set.find(1)->second->get_supervoxel_set();
+	for (supervoxel_itr = tmp_supervoxels.begin();
+			supervoxel_itr != tmp_supervoxels.end(); supervoxel_itr++) {
+		Clustering::cutAdjacencies(supervoxel_itr->first, adjacency_list);
+	}
+	// END cut plane-objects adjacencies
+
+	// !!!
+	// TODO edgeCutter on obj_index = 2 (all supervoxels except the plane)
+	// !!!
+	Clustering::edgeCutter(adjacency_list, objects_set, toll_multiplier);
+
+	/*
+	adj_itr = adjacency_list.begin();
+	cout << "\nadjlist:";
+	for (; adj_itr != adjacency_list.end(); adj_itr++) {
+		cout << "\n" << adj_itr->first << " - " << adj_itr->second;
+	}*/
+
+	//cout << "\nComputing Disconnected Graphs..\n";
+	Clustering::computeDisconnectedGraphs(2, adjacency_list, objects_set);
+
+	// BEGIN print object labels clustered in objects_set
+	map<uint32_t, Object*>::iterator obSetItr = objects_set.begin();
+	for (; obSetItr != objects_set.end(); obSetItr++) {
+		//cout << "Oggetto n. " << obSetItr->first;
+		//obSetItr->second->print();
+		//cout << "\n";
+	}
+	// END print object labels clustered in objects_set
+
+	ClusteringT segments = segmentation.getState().get_segments();
+	ClusteringT::iterator segments_it = segments.begin();
+
+	obSetItr = objects_set.begin();
+	obSetItr++;
+
+	/*cout << "\nADJ MODIFICATA:";
+	for(adj_itr = adjacency_list.begin(); adj_itr != adjacency_list.end(); adj_itr++){
+		cout << "\n" << adj_itr->first << " - " << adj_itr->second;
+	}
+
+	cout << "\nADJ REALE :";
+	for(adj_itr = adjacency.begin(); adj_itr != adjacency.end(); adj_itr++){
+		cout << "\n" << adj_itr->first << " - " << adj_itr->second;
+	}*/
+
+	for (; obSetItr != objects_set.end(); obSetItr++) {
+		tmp_supervoxels = obSetItr->second->get_supervoxel_set();
+
+		if(tmp_supervoxels.size() > 1){
+			supervoxel_itr = tmp_supervoxels.begin();
+			supervoxel_itr++;
+			for (; supervoxel_itr != tmp_supervoxels.end(); supervoxel_itr++) {
+				uint32_t node_a, node_b;
+				node_a = tmp_supervoxels.begin()->first;
+				node_b = supervoxel_itr->first;
+				std::pair<uint32_t, uint32_t> tmp = make_pair(node_a, node_b);
+				//cout << "\nMerge:";
+				//cout << "\n<" << node_a << "> con <" << node_b << ">";
+				segmentation.mergeSupervoxel(tmp);
+			}
+		}
+	}
+
+	// BEGIN updating view, recalculate label colors
+	obSetItr = objects_set.begin();
+	for (; obSetItr != objects_set.end(); obSetItr++) {
+
+/*
+		cout << "Oggetto n. " << obSetItr->first;
+		obSetItr->second->print();
+		cout << "\n";
+*/
+
+		map<uint32_t, Supervoxel<PointT>::Ptr> tmp_set =
+				obSetItr->second->get_supervoxel_set();
+		map<uint32_t, Supervoxel<PointT>::Ptr>::iterator set_itr =
+				tmp_set.begin();
+
+		for (; set_itr != tmp_set.end(); set_itr++) {
+			convert.str("");
+			convert.clear();
+			convert << "[" << set_itr->first << "]";
+			//viewer->removeText3D(convert.str());
+			c = obSetItr->second->get_color();
+			//viewer->addText3D(convert.str(), set_itr->second->centroid_, 0.01,
+			//		c.r, c.g, c.b);
+		}
+	}
+	// END updating view, recalculate label colors
+
+	// END ALEX
+}
+
 
 // END ALEX
 
@@ -859,6 +1077,67 @@ std::map<float, performanceSet> Clustering::all_thresh(
 		cluster(state, t);
 		test.set_segm(get_labeled_cloud());
 		p = test.eval_performance();
+		thresholds.insert(std::pair<float, performanceSet>(t, p));
+		console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n", t,
+				p.fscore, p.voi, p.wov);
+	}
+
+	return thresholds;
+}
+
+std::map<float, performanceSet> Clustering::all_thresh_graph(
+		ClusteringT supervoxel_clusters, AdjacencyMapT label_adjacency,
+		PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+		float end_thresh, float step_thresh, float toll_multiplier) {
+	if (start_thresh < 0 || start_thresh > 1 || end_thresh < 0 || end_thresh > 1
+			|| step_thresh < 0 || step_thresh > 1) {
+		throw std::out_of_range(
+				"start_thresh, end_thresh and/or step_thresh outside of range [0, 1]");
+	}
+	if (start_thresh > end_thresh) {
+		console::print_warn(
+				"Start threshold greater then end threshold, inverting.\n");
+		float temp = end_thresh;
+		end_thresh = start_thresh;
+		start_thresh = temp;
+	}
+
+	console::print_info("Testing thresholds from %f to %f (step %f)\n",
+			start_thresh, end_thresh, step_thresh);
+
+	std::map<float, performanceSet> thresholds;
+	Clustering segmentation;
+
+	segmentation.set_initialstate(supervoxel_clusters, label_adjacency);
+	segmentation.cluster(start_thresh);
+
+	AdjacencyMapT tmp_adjacency = segmentation.get_currentstate().second;
+	analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
+
+	Testing test(segmentation.get_labeled_cloud(), ground_truth);
+
+	performanceSet p = test.eval_performance();
+	thresholds.insert(std::pair<float, performanceSet>(start_thresh, p));
+	console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n",
+			start_thresh, p.fscore, p.voi, p.wov);
+
+	for (float t = start_thresh + step_thresh; t <= end_thresh; t +=
+			step_thresh) {
+		segmentation.set_initialstate(supervoxel_clusters, label_adjacency);
+
+		segmentation.cluster(t);
+		tmp_adjacency = segmentation.get_currentstate().second;
+		if(tmp_adjacency.size() > 2){
+			analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
+			test.set_segm(segmentation.get_labeled_cloud());
+			p = test.eval_performance();
+		}
+		else {
+			performanceSet tmp;
+			p = tmp;
+		}
+
+
 		thresholds.insert(std::pair<float, performanceSet>(t, p));
 		console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n", t,
 				p.fscore, p.voi, p.wov);

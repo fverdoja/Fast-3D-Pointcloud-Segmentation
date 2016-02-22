@@ -148,6 +148,12 @@ public:
 	void mergeSupervoxel(std::pair<uint32_t, uint32_t> supvox_ids);
 	ClusteringState getState();
 	void merge(std::pair<uint32_t, uint32_t> supvox_ids);
+	std::map<float, performanceSet> all_thresh_graph(
+	ClusteringT supervoxel_clusters, AdjacencyMapT label_adjacency,
+	PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+	float end_thresh, float step_thresh, float toll_multiplier);
+	void analyze_graph(Clustering& segmentation,
+			multimap<uint32_t, uint32_t>& adjacency, float toll_multiplier);
 	// END ALEX
 
 	void set_delta_c(ColorDistance d) {
