@@ -1085,10 +1085,10 @@ std::map<float, performanceSet> Clustering::all_thresh(
 	return thresholds;
 }
 
-std::map<float, performanceSet> Clustering::all_thresh_graph(
+std::map<float, performanceSet> Clustering::all_thresh_v2(
 		ClusteringT supervoxel_clusters, AdjacencyMapT label_adjacency,
 		PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
-		float end_thresh, float step_thresh, float toll_multiplier) {
+		float end_thresh, float step_thresh, float toll_multiplier, bool CVX, bool GA) {
 	if (start_thresh < 0 || start_thresh > 1 || end_thresh < 0 || end_thresh > 1
 			|| step_thresh < 0 || step_thresh > 1) {
 		throw std::out_of_range(
@@ -1106,13 +1106,18 @@ std::map<float, performanceSet> Clustering::all_thresh_graph(
 			start_thresh, end_thresh, step_thresh);
 
 	std::map<float, performanceSet> thresholds;
-	Clustering segmentation;
+/*	Clustering segmentation;
+
+	if(CVX)
+		segmentation.set_delta_g(CONVEX_NORMALS_DIFF);
 
 	segmentation.set_initialstate(supervoxel_clusters, label_adjacency);
+
 	segmentation.cluster(start_thresh);
 
 	AdjacencyMapT tmp_adjacency = segmentation.get_currentstate().second;
-	analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
+	if(GA)
+		analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
 
 	Testing test(segmentation.get_labeled_cloud(), ground_truth);
 
@@ -1120,21 +1125,32 @@ std::map<float, performanceSet> Clustering::all_thresh_graph(
 	thresholds.insert(std::pair<float, performanceSet>(start_thresh, p));
 	console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n",
 			start_thresh, p.fscore, p.voi, p.wov);
-
-	for (float t = start_thresh + step_thresh; t <= end_thresh; t +=
+*/
+	performanceSet p;
+	for (float t = start_thresh/* + step_thresh*/; t <= end_thresh; t +=
 			step_thresh) {
+		Clustering segmentation;
+		if(CVX)
+			segmentation.set_delta_g(CONVEX_NORMALS_DIFF);
 		segmentation.set_initialstate(supervoxel_clusters, label_adjacency);
 
 		segmentation.cluster(t);
-		tmp_adjacency = segmentation.get_currentstate().second;
-		if(tmp_adjacency.size() > 2){
-			analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
-			test.set_segm(segmentation.get_labeled_cloud());
+		AdjacencyMapT tmp_adjacency = segmentation.get_currentstate().second;
+
+		if(GA)
+			if(tmp_adjacency.size() > 2){
+				analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
+				//t_segm(segmentation.get_labeled_cloud());
+				Testing test(segmentation.get_labeled_cloud(), ground_truth);
+				p = test.eval_performance();
+			}
+			else {
+				performanceSet tmp;
+				p = tmp;
+			}
+		else{
+			Testing test(segmentation.get_labeled_cloud(), ground_truth);
 			p = test.eval_performance();
-		}
-		else {
-			performanceSet tmp;
-			p = tmp;
 		}
 
 

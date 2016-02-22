@@ -428,9 +428,10 @@ int main(int argc, char ** argv) {
 			//		truth_cloud, start_thresh, end_thresh, step_thresh);
 
 			// ALEX CODE
-			std::map<float, performanceSet> all = segmentation.all_thresh_graph(
+			std::map<float, performanceSet> all = segmentation.all_thresh_v2(
 					supervoxel_clusters, label_adjacency, truth_cloud,
-					start_thresh, end_thresh, step_thresh, toll_multiplier);
+					start_thresh, end_thresh, step_thresh, toll_multiplier,
+					convexity_specified, graph_analysis);
 			// END ALEX CODE
 
 			all_performances.push_back(all);

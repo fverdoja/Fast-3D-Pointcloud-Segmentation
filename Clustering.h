@@ -148,10 +148,10 @@ public:
 	void mergeSupervoxel(std::pair<uint32_t, uint32_t> supvox_ids);
 	ClusteringState getState();
 	void merge(std::pair<uint32_t, uint32_t> supvox_ids);
-	std::map<float, performanceSet> all_thresh_graph(
+	std::map<float, performanceSet> all_thresh_v2(
 	ClusteringT supervoxel_clusters, AdjacencyMapT label_adjacency,
 	PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
-	float end_thresh, float step_thresh, float toll_multiplier);
+	float end_thresh, float step_thresh, float toll_multiplier, bool CVX, bool GA);
 	void analyze_graph(Clustering& segmentation,
 			multimap<uint32_t, uint32_t>& adjacency, float toll_multiplier);
 	// END ALEX
