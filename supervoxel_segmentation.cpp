@@ -134,6 +134,7 @@ void addSupervoxelConnectionsToViewer(PointT &supervoxel_center,
 		shared_ptr<visualization::PCLVisualizer> & viewer);
 //void analyze_graph(Clustering& segmentation,
 //		multimap<uint32_t, uint32_t>& adjacency, float toll_multiplier);
+bool sortDirectoryFiles(string s1, string s2);
 void visualize(std::map<uint32_t, Supervoxel<PointT>::Ptr> supervoxel_clusters,
 		PointCloudT::Ptr colored_cloud, PointCloudT::Ptr segm_cloud,
 		PointCloudT::Ptr truth_cloud, PointNCloudT::Ptr normal_cloud,
@@ -219,6 +220,7 @@ int main(int argc, char ** argv) {
 				console::print_debug("File found: %s\n", it->path().c_str());
 			}
 		}
+		std::sort (file_list.begin(), file_list.end(), sortDirectoryFiles);
 		console::print_info("Found %d files\n", file_list.size());
 	} else if (pcd_file_specified) {
 		console::parse(argc, argv, "-p", path);
@@ -769,4 +771,8 @@ void removeText(shared_ptr<visualization::PCLVisualizer> viewer) {
 	viewer->removeShape("voxel_normals_text");
 	viewer->removeShape("supervoxel_normals_text");
 	viewer->removeShape("refined_text");
+}
+
+bool sortDirectoryFiles(string s1, string s2){
+	return s1.compare(s2) > 0? false : true;
 }
