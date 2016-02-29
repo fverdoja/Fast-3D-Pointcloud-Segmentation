@@ -352,11 +352,12 @@ void Clustering::mergeSupervoxel(std::pair<uint32_t, uint32_t> supvox_ids) {
 }
 
 void Clustering::analyze_graph(Clustering& segmentation,
-		multimap<uint32_t, uint32_t>& adjacency, float toll_multiplier) {
+		/*multimap<uint32_t, uint32_t>& adjacency,*/ float toll_multiplier) {
 	// ALEX CODE
 	// Print supervoxel label next to each centroid and
 	// split table from rest of objects
 	// tested on test: 50,48,46,30,25
+	multimap<uint32_t, uint32_t> adjacency = segmentation.get_currentstate().second;
 	if (adjacency.size() > 2) {
 		std::map<uint32_t, Object*> objects_set;
 		int tmpIndex = 0;
@@ -1052,6 +1053,7 @@ void Clustering::cluster(float threshold) {
 
 	cluster(initial_state, threshold);
 }
+
 std::map<float, performanceSet> Clustering::all_thresh(
 		PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
 		float end_thresh, float step_thresh) {
@@ -1092,8 +1094,10 @@ std::map<float, performanceSet> Clustering::all_thresh(
 	return thresholds;
 }
 
+
 std::map<float, performanceSet> Clustering::all_thresh_v2(
-		ClusteringT supervoxel_clusters, AdjacencyMapT label_adjacency,
+		Clustering segmentationBackup
+		/*ClusteringT supervoxel_clusters, AdjacencyMapT label_adjacency*/,
 		PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
 		float end_thresh, float step_thresh, float toll_multiplier, bool CVX, bool GA) {
 	if (start_thresh < 0 || start_thresh > 1 || end_thresh < 0 || end_thresh > 1
@@ -1117,42 +1121,82 @@ std::map<float, performanceSet> Clustering::all_thresh_v2(
 	performanceSet p;
 	for (float t = start_thresh/* + step_thresh*/; t <= end_thresh; t +=
 			step_thresh) {
-		Clustering segmentation;
-		if(CVX)
+		//Clustering segmentation = segmentationBackup;
+		/*if(CVX)
 			segmentation.set_delta_g(CONVEX_NORMALS_DIFF);
+		segmentation.set_initialstate(supervoxel_clusters, label_adjacency);*/
+		thresholds.insert(all_thresh_v2_internal(segmentationBackup, ground_truth, t, toll_multiplier, GA));
+		console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n", t, p.fscore, p.voi, p.wov);
+	}
+
+	return thresholds;
+}
+
+std::map<float, performanceSet> Clustering::all_thresh_v3(
+ClusteringT supervoxel_clusters, AdjacencyMapT label_adjacency,
+PointCloud<PointLT>::Ptr ground_truth, float start_thresh, float end_thresh,
+		float step_thresh, float toll_multiplier, bool CVX, bool GA) {
+
+	if (start_thresh < 0 || start_thresh > 1 || end_thresh < 0 || end_thresh > 1
+	|| step_thresh < 0 || step_thresh > 1) {
+		throw std::out_of_range(
+		"start_thresh, end_thresh and/or step_thresh outside of range [0, 1]");
+	}
+
+	if (start_thresh > end_thresh) {
+		console::print_warn(
+		"Start threshold greater then end threshold, inverting.\n");
+		float temp = end_thresh;
+		end_thresh = start_thresh;
+		start_thresh = temp;
+	}
+
+	console::print_info("Testing thresholds from %f to %f (step %f)\n",
+	start_thresh, end_thresh, step_thresh);
+	std::map<float, performanceSet> thresholds;
+
+	performanceSet p;
+
+	for (float t = start_thresh/* + step_thresh*/; t <= end_thresh; t += step_thresh) {
+
+		Clustering segmentation;
+
+		if (CVX)
+			segmentation.set_delta_g(CONVEX_NORMALS_DIFF);
+
 		segmentation.set_initialstate(supervoxel_clusters, label_adjacency);
 
 		segmentation.cluster(t);
 		AdjacencyMapT tmp_adjacency = segmentation.get_currentstate().second;
 
-		if(GA)
-			analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
+		if (GA)
+			analyze_graph(segmentation, toll_multiplier);
 
 		Testing test(segmentation.get_labeled_cloud(), ground_truth);
 		p = test.eval_performance();
-			/*
-
-			if(tmp_adjacency.size() > 2){
-				analyze_graph(segmentation, tmp_adjacency, toll_multiplier);
-				Testing test(segmentation.get_labeled_cloud(), ground_truth);
-				p = test.eval_performance();
-			}
-			else {
-				performanceSet tmp;
-				p = tmp;
-			}
-		else{
-			Testing test(segmentation.get_labeled_cloud(), ground_truth);
-			p = test.eval_performance();
-		}*/
-
 
 		thresholds.insert(std::pair<float, performanceSet>(t, p));
 		console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n", t,
-				p.fscore, p.voi, p.wov);
-	}
+		p.fscore, p.voi, p.wov);
 
+	}
 	return thresholds;
+}
+
+std::pair<float, performanceSet> Clustering::all_thresh_v2_internal(
+		Clustering segmentation, PointCloud<PointLT>::Ptr ground_truth,
+		float thresh, float toll_multiplier, bool GA) {
+
+			segmentation.cluster(thresh);
+			AdjacencyMapT tmp_adjacency = segmentation.get_currentstate().second;
+
+			if(GA)
+				analyze_graph(segmentation, toll_multiplier);
+
+			Testing test(segmentation.get_labeled_cloud(), ground_truth);
+			performanceSet p = test.eval_performance();
+
+			return std::pair<float, performanceSet>(thresh, p);
 }
 
 std::pair<float, performanceSet> Clustering::best_thresh(

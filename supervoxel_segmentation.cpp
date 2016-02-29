@@ -87,9 +87,9 @@ bool show_supervoxels = false;
 bool show_supervoxel_normals = false;
 bool show_graph = true;
 bool show_help = false;
-float start_thresh = 0.0;
-float end_thresh = 1.0;
-float step_thresh = 0.005;
+float start_thresh = 0.0f;
+float end_thresh = 1.0f;
+float step_thresh = 0.005f;
 
 void keyboard_callback(const visualization::KeyboardEvent& event, void*) {
 	int key = event.getKeyCode();
@@ -157,8 +157,6 @@ int main(int argc, char ** argv) {
 						"\n\t"
 						"SEGMENTATION optional options: \n\t"
 						" -t <threshold>                 (default: auto)\n\t"
-						" --RGB                          (uses the RGB color space for measuring the color distance; if not given, L*A*B* color space is used) \n\t"
-						" --CVX                          (uses the convexity criterion to weigh the geometric distance; if not given, convexity is not considered) \n\t"
 						" --GA [toll-multiplier]         (uses Graph Analysis merging criterion; if no parameter is given, toll-multiplier=1.1 is used) \n\t"
 						" --ML [manual-lambda] *         (uses Manual Lambda as merging criterion; if no parameter is given, lambda=0.5 is used) \n\t"
 						" --AL                 *         (uses Adaptive lambda as merging criterion) \n\t"
@@ -262,6 +260,8 @@ int main(int argc, char ** argv) {
 	float normal_importance = 1.0f;
 	if (console::find_switch(argc, argv, "-n"))
 		console::parse(argc, argv, "-n", normal_importance);
+
+	bool disable_visualization = console::find_switch(argc, argv, "--DISV");
 
 // Segmentation parameters
 	bool rgb_color_space_specified = console::find_switch(argc, argv, "--RGB");
@@ -426,14 +426,26 @@ int main(int argc, char ** argv) {
 			console::print_debug("Lambda: %f\n", segmentation.get_lambda());
 
 		if (!thresh_specified) {
-			//std::map<float, performanceSet> all = segmentation.all_thresh(
-			//		truth_cloud, start_thresh, end_thresh, step_thresh);
+			/*
+			std::map<float, performanceSet> all = segmentation.all_thresh(
+					truth_cloud, start_thresh, end_thresh, step_thresh);
+			*/
 
 			// ALEX CODE
-			std::map<float, performanceSet> all = segmentation.all_thresh_v2(
-					supervoxel_clusters, label_adjacency, truth_cloud,
+			/*std::map<float, performanceSet> all = segmentation.all_thresh_v2(
+					segmentation, truth_cloud,
 					start_thresh, end_thresh, step_thresh, toll_multiplier,
-					convexity_specified, graph_analysis);
+					convexity_specified, graph_analysis);*/
+
+			std::map<float, performanceSet> all;
+			if (!graph_analysis)
+				all = segmentation.all_thresh(truth_cloud, start_thresh,
+						end_thresh, step_thresh);
+			else
+				all = segmentation.all_thresh_v3(supervoxel_clusters,
+						label_adjacency, truth_cloud, start_thresh, end_thresh,
+						step_thresh, toll_multiplier, convexity_specified,
+						graph_analysis);
 			// END ALEX CODE
 
 			all_performances.push_back(all);
@@ -460,7 +472,7 @@ int main(int argc, char ** argv) {
 		////// Graph Analysis
 		////////////////////////////////////////////////////////////
 		if(graph_analysis)
-			segmentation.analyze_graph(segmentation, label_adjacency, toll_multiplier);
+			segmentation.analyze_graph(segmentation,/* label_adjacency,*/ toll_multiplier);
 
 		colored_voxel_cloud = segmentation.get_colored_cloud();
 
@@ -476,9 +488,9 @@ int main(int argc, char ** argv) {
 		////// Visualization
 		////////////////////////////////////////////////////////////
 
-		if (file_list.size() == 1) {
+		if (file_list.size() == 1 && !disable_visualization) {
 			console::print_info("Loading visualization...\n");
-			visualize(/*supervoxel_clusters*/s.first, voxel_centroid_cloud,
+			visualize(s.first, voxel_centroid_cloud,
 					colored_voxel_cloud, colored_truth_cloud,
 					refined_sv_normal_cloud, label_adjacency);
 		}
