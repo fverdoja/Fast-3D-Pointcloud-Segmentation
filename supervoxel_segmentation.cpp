@@ -313,6 +313,7 @@ int main(int argc, char ** argv) {
 		console::print_info("Loading pointcloud from PCD file '%s'...\n",
 				file_it->c_str());
 		pcl::io::loadPCDFile(*file_it, *input_cloud);
+		//pcl::io::loadPLYFile(*file_it, *input_cloud);
 		PointLCCloudT::Ptr cloud_temp = make_shared<PointLCCloudT>();
 		PointLCCloudT::iterator cloud_itr = input_cloud->begin();
 		for (; cloud_itr != input_cloud->end(); ++cloud_itr) {
@@ -426,16 +427,6 @@ int main(int argc, char ** argv) {
 			console::print_debug("Lambda: %f\n", segmentation.get_lambda());
 
 		if (!thresh_specified) {
-			/*
-			std::map<float, performanceSet> all = segmentation.all_thresh(
-					truth_cloud, start_thresh, end_thresh, step_thresh);
-			*/
-
-			// ALEX CODE
-			/*std::map<float, performanceSet> all = segmentation.all_thresh_v2(
-					segmentation, truth_cloud,
-					start_thresh, end_thresh, step_thresh, toll_multiplier,
-					convexity_specified, graph_analysis);*/
 
 			std::map<float, performanceSet> all;
 			if (!graph_analysis)
