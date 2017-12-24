@@ -53,33 +53,76 @@ typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<float, std::pair<uint32_t, uint32_t> > WeightMapT;
 typedef std::pair<float, std::pair<uint32_t, uint32_t> > WeightedPairT;
 
+/**
+ * Data structure representing a state of the clustering process. It holds 
+ * information about the graph nodes and edge weights.
+ *  
+ * Each node represents a region of the segmentation and has a label assigned.
+ * 
+ * Edge weights are represented as a map where the cell addressed by two labels 
+ * contains the weight of the edge connecting the nodes identified by those 
+ * labels. This map is sorted from the smallest weight to the biggest.
+ */
 class ClusteringState {
-	friend class Clustering;
+    friend class Clustering;
 
-	ClusteringT segments;
-	WeightMapT weight_map;
+    ClusteringT segments;
+    WeightMapT weight_map;
 
 public:
-	ClusteringState() {
-	}
 
-	ClusteringState(ClusteringT s, WeightMapT w);
+    ClusteringState() {
+    }
+    
+    ClusteringState(ClusteringT s, WeightMapT w);
 
-	ClusteringT get_segments() const {
-		return segments;
-	}
-	void set_segments(ClusteringT s) {
-		segments = s;
-	}
-	WeightMapT get_weight_map() const {
-		return weight_map;
-	}
-	void set_weight_map(WeightMapT w) {
-		weight_map = w;
-	}
-	WeightedPairT get_first_weight() const {
-		return *(weight_map.begin());
-	}
+    /**
+     * Get all nodes in the graph
+     * 
+     * @return a map containing the regions of the segmentations, each 
+     *         identified by an unique label
+     */
+    ClusteringT get_segments() const {
+        return segments;
+    }
+
+    /**
+     * Set values for all nodes in the graph
+     * 
+     * @param s a map containing the regions of the segmentations, each 
+     *          identified by an unique label
+     */
+    void set_segments(ClusteringT s) {
+        segments = s;
+    }
+
+    /**
+     * Get the weight map of the graph
+     * 
+     * @return a multimap containing the edge weights of the graph
+     */
+    WeightMapT get_weight_map() const {
+        return weight_map;
+    }
+
+    /**
+     * Set all edge weights to the given map
+     * 
+     * @param w a multimap containing the edge weights of the graph
+     */
+    void set_weight_map(WeightMapT w) {
+        weight_map = w;
+    }
+
+    /**
+     * Get the pair of nodes connected by the edge having the smallest weight
+     * 
+     * @return a pair of labels corresponding to the two most similar nodes in 
+     *         the graph, and the weight of the edge connecting them
+     */
+    WeightedPairT get_first_weight() const {
+        return *(weight_map.begin());
+    }
 };
 
 #endif /* CLUSTERINGSTATE_H_ */

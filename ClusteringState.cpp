@@ -40,7 +40,14 @@
 
 #include "ClusteringState.h"
 
+/**
+ * Initialize a new clustering graph
+ * 
+ * @param s a map containing the regions of the segmentations, each identified 
+ *          by an unique label
+ * @param w a multimap containing the edge weights of the graph
+ */
 ClusteringState::ClusteringState(ClusteringT s, WeightMapT w) {
-	set_segments(s);
-	set_weight_map(w);
+    set_segments(s);
+    set_weight_map(w);
 }

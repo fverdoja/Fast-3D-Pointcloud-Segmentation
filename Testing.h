@@ -57,63 +57,81 @@ typedef std::vector<PointLT, Eigen::aligned_allocator<PointLT> > PointLVectorT;
 typedef std::map<uint32_t, PointLCloudT::Ptr> labelMapT;
 
 struct compareXYZ {
-	bool operator()(PointLT const &p1, PointLT const &p2) const {
-		if (p1.x != p2.x)
-			return p1.x < p2.x;
-		if (p1.y != p2.y)
-			return p1.y < p2.y;
-		return p1.z < p2.z;
-	}
+
+    bool operator()(PointLT const &p1, PointLT const &p2) const {
+        if (p1.x != p2.x)
+            return p1.x < p2.x;
+        if (p1.y != p2.y)
+            return p1.y < p2.y;
+        return p1.z < p2.z;
+    }
 };
 
 struct performanceSet {
-	performanceSet() :
-			voi(0), precision(0), recall(0), fscore(0), wov(0), fpr(0), fnr(0) {
-	}
-	float voi, precision, recall, fscore, wov, fpr, fnr;
+
+    performanceSet() :
+    voi(0), precision(0), recall(0), fscore(0), wov(0), fpr(0), fnr(0) {
+    }
+    float voi, precision, recall, fscore, wov, fpr, fnr;
 };
 
+/**
+ * Class to evaluate a segmentation of the pointcloud against the groundtruth in
+ * terms of precision, recall, F-score, VoI, wOv, FPR and FNR
+ */
 class Testing {
-	PointLCloudT::Ptr segm, truth;
-	labelMapT segm_labels, truth_labels;
-	Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic> inter_matrix;
-	Eigen::Array<int64_t, 1, Eigen::Dynamic> matches;
-	float precision, recall, fscore, voi, wov, fpr, fnr;
-	bool is_set_segm, is_set_truth;
+    PointLCloudT::Ptr segm, truth;
+    labelMapT segm_labels, truth_labels;
+    Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic> inter_matrix;
+    Eigen::Array<int64_t, 1, Eigen::Dynamic> matches;
+    float precision, recall, fscore, voi, wov, fpr, fnr;
+    bool is_set_segm, is_set_truth;
 
-	void init_performance();
-	labelMapT label_map(PointLCloudT::Ptr in);
-	void compute_intersections();
-	PointLCloudT::Ptr extract_label_cloud(PointLCloudT::Ptr c,
-			uint32_t label) const;
-	size_t count_intersect(PointLCloudT::Ptr c1, PointLCloudT::Ptr c2) const;
-	size_t count_union(PointLCloudT::Ptr c1, PointLCloudT::Ptr c2) const;
+    void init_performance();
+    labelMapT label_map(PointLCloudT::Ptr in);
+    void compute_intersections();
+    PointLCloudT::Ptr extract_label_cloud(PointLCloudT::Ptr c,
+            uint32_t label) const;
+    size_t count_intersect(PointLCloudT::Ptr c1, PointLCloudT::Ptr c2) const;
+    size_t count_union(PointLCloudT::Ptr c1, PointLCloudT::Ptr c2) const;
 
-	Testing() {
-		init_performance();
-	}
+    Testing() {
+        init_performance();
+    }
 
 public:
-	Testing(PointLCloudT::Ptr s, PointLCloudT::Ptr t);
+    
+    Testing(PointLCloudT::Ptr s, PointLCloudT::Ptr t);
 
-	float eval_precision();
-	float eval_recall();
-	float eval_fscore();
-	float eval_voi();
-	float eval_wov();
-	float eval_fpr();
-	float eval_fnr();
-	performanceSet eval_performance();
+    float eval_precision();
+    float eval_recall();
+    float eval_fscore();
+    float eval_voi();
+    float eval_wov();
+    float eval_fpr();
+    float eval_fnr();
+    performanceSet eval_performance();
 
-	PointLCloudT::Ptr get_segm() const {
-		return segm;
-	}
-	PointLCloudT::Ptr get_truth() const {
-		return truth;
-	}
+    /**
+     * Get the segmentation to be tested
+     * 
+     * @return the segmentation of the pointcloud under test
+     */
+    PointLCloudT::Ptr get_segm() const {
+        return segm;
+    }
 
-	void set_segm(PointLCloudT::Ptr s);
-	void set_truth(PointLCloudT::Ptr t);
+    /**
+     * Get the groundtruth segmentation
+     * 
+     * @return the groundtruth of the pointcloud under test
+     */
+    PointLCloudT::Ptr get_truth() const {
+        return truth;
+    }
+
+    void set_segm(PointLCloudT::Ptr s);
+    void set_truth(PointLCloudT::Ptr t);
 };
 
 #endif /* TESTING_H_ */

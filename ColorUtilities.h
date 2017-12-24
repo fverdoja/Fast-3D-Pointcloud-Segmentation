@@ -40,6 +40,7 @@
 
 #ifndef COLORUTILITIES_H_
 #define COLORUTILITIES_H_
+#define _USE_MATH_DEFINES
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -49,43 +50,49 @@
 
 #include <iostream>
 #include <fstream>
+#include <math.h>
 
 using namespace pcl;
 
 struct Color {
-	uint8_t data[3];
+    uint8_t data[3];
 };
 
 typedef PointXYZRGBA PointT;
 typedef Supervoxel<PointT> SupervoxelT;
 typedef std::map<uint32_t, Color> LookupTable;
 
-const double PI = 3.141592653589793238462643383279;
 const float RGB_RANGE = 441.672943;
 const float LAB_RANGE = 137.3607;
+const std::string GLASBEY_FILE = "../Src/glasbey.lut";  // change path if needed
 
+/**
+ * Utility class containing functions related to color management and 
+ * conversion.
+ */
 class ColorUtilities {
-	static const LookupTable glasbey;
+    static const LookupTable glasbey;
 
-	static LookupTable init_glasbey();
-	static float * color_conversion(float in[3], int code);
-	static float ciede00_test(float L1, float a1, float b1, float L2, float a2,
-			float b2, float result);
-	ColorUtilities() {
-	}
+    static LookupTable init_glasbey();
+    static float * color_conversion(float in[3], int code);
+    static float ciede00_test(float L1, float a1, float b1, float L2, float a2,
+            float b2, float result);
+
+    ColorUtilities() {
+    }
 
 public:
-	static uint8_t * get_glasbey(uint32_t label);
-	static float * mean_color(SupervoxelT::Ptr s);
-	static float * rgb2lab(float rgb[3]);
-	static float * lab2rgb(float lab[3]);
-	static float lab_ciede00(float lab1[3], float lab2[3], double kL = 1.0,
-			double kC = 1.0, double kH = 1.0);
-	static float rgb_eucl(float rgb1[3], float rgb2[3]);
-	static void rgb_test();
-	static void lab_test();
-	static void convert_test();
-
+        
+    static uint8_t * get_glasbey(uint32_t label);
+    static float * mean_color(SupervoxelT::Ptr s);
+    static float * rgb2lab(float rgb[3]);
+    static float * lab2rgb(float lab[3]);
+    static float lab_ciede00(float lab1[3], float lab2[3], double kL = 1.0,
+            double kC = 1.0, double kH = 1.0);
+    static float rgb_eucl(float rgb1[3], float rgb2[3]);
+    static void rgb_test();
+    static void lab_test();
+    static void convert_test();
 };
 
 #endif /* COLORUTILITIES_H_ */
