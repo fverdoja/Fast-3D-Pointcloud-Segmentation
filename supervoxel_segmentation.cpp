@@ -345,8 +345,8 @@ int main(int argc, char ** argv) {
         ////// Supervoxel generation
         ////////////////////////////////////////////////////////////
 
-        SupervoxelClustering<PointT> super(voxel_resolution, seed_resolution,
-                !disable_transform);
+        SupervoxelClustering<PointT> super(voxel_resolution, seed_resolution);
+        super.setUseSingleCameraTransform(!disable_transform);
         super.setInputCloud(cloud);
         super.setColorImportance(color_importance);
         super.setSpatialImportance(spatial_importance);
@@ -392,7 +392,8 @@ int main(int argc, char ** argv) {
         PointCloudT::Ptr colored_truth_cloud = Clustering::label2color(
                 truth_cloud);
         SupervoxelClustering<PointT> super_label(voxel_resolution,
-                seed_resolution, !disable_transform);
+                seed_resolution);
+        super_label.setUseSingleCameraTransform(!disable_transform);
         super_label.setInputCloud(colored_truth_cloud);
         super_label.setColorImportance(color_importance);
         super_label.setSpatialImportance(spatial_importance);
