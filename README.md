@@ -7,6 +7,7 @@ F. Verdoja, D. Thomas, and A. Sugimoto, “Fast 3D point cloud segmentation usin
 Article versions: [[preprint](https://iris.unito.it/bitstream/2318/1647554/1/article_icme2017.pdf)] [[published](https://ieeexplore.ieee.org/abstract/document/8019382)]
 
 ## Paper abstract
+
 Segmentation of 3D colored point clouds is a research field with renewed interest thanks to recent availability of inexpensive consumer RGB-D cameras and its importance as an unavoidable low-level step in many robotic applications. However, 3D data’s nature makes the task challenging and, thus, many different techniques are being proposed, all of which require expensive computational costs. This paper presents a novel fast method for 3D colored point cloud segmentation. It starts with supervoxel partitioning of the cloud, i.e., an oversegmentation of the points in the cloud. Then it leverages on a novel metric exploiting both geometry and color to iteratively merge the supervoxels to obtain a 3D segmentation where the hierarchical structure of partitions is maintained. The algorithm also presents computational complexity linear to the size of the input. Experimental results over two publicly available datasets demonstrate that our proposed method outperforms state-of-the-art techniques.
 
 ## Dependencies
@@ -20,25 +21,25 @@ The code can be compiled by running `cmake` followed by  `make`
 ## Use
 
 ```
-Syntax is: ./supervoxel_segmentation {-d <direcory-of-pcd-files> OR -p <pcd-file>} [options] 
+Syntax is: ./supervoxel_segmentation {-d <direcory-of-pcd-files> OR -p <pcd-file>} [arguments] 
 
-        SUPERVOXEL optional options: 
+        SUPERVOXEL optional arguments: 
          -v <voxel-resolution>          (default: 0.008) 
          -s <seed-resolution>           (default: 0.08) 
          -c <color-weight>              (default: 0.2) 
          -z <spatial-weight>            (default: 0.4) 
          -n <normal-weight>             (default: 1.0) 
 
-        SEGMENTATION optional options: 
+        SEGMENTATION optional arguments: 
          -t <threshold>                 (default: auto)
          --RGB                          (uses the RGB color space for measuring the color distance; if not given, L*A*B* color space is used) 
          --CVX                          (uses the convexity criterion to weigh the geometric distance; if not given, convexity is not considered) 
          --ML [manual-lambda] *         (uses Manual Lambda as merging criterion; if no parameter is given, lambda=0.5 is used) 
          --AL                 *         (uses Adaptive lambda as merging criterion) 
          --EQ [bins-number]   *         (uses Equalization as merging criterion; if no parameter is given, 200 bins are used) 
-          * please note that only one of this options can be passed at the same time 
+          * please note that only one of these arguments can be passed at the same time 
 
-        OTHER optional options: 
+        OTHER optional arguments: 
          -r <label-to-be-removed>       (if ground-truth is provided, removes all points with the given label from the ground-truth)
          -f <test-results-filename>     (uses the given name as filename for all test results files; if not given, 'test' is going to be used)
          --NT                           (disables use of single camera transform) 
