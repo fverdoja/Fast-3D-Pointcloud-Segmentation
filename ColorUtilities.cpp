@@ -59,17 +59,17 @@ LookupTable ColorUtilities::init_glasbey() {
             + GLASBEY_FILE);
 
     while (!f.eof()) {
-        uint8_t l = 0;
-        uint8_t r = 0;
-        uint8_t g = 0;
-        uint8_t b = 0;
+        int l = 0;
+        int r = 0;
+        int g = 0;
+        int b = 0;
 
         f >> l >> r >> g >> b; // reads a line from the file, interpeting 
                                // the first number as label and the following
                                // three as red, green and blue values
                                // respectively
 
-        Color rgb = {r, g, b};
+        Color rgb = {(uint8_t) r, (uint8_t) g, (uint8_t) b};
         glas.insert(std::pair<uint32_t, Color>(l, rgb));
     }
 
