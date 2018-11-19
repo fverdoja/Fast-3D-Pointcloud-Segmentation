@@ -357,9 +357,7 @@ int main(int argc, char ** argv) {
         super.extract(supervoxel_clusters);
         console::print_info("Found %d supervoxels\n",
                 supervoxel_clusters.size());
-        PointCloudT::Ptr colored_voxel_cloud = super.getColoredVoxelCloud();
         PointCloudT::Ptr voxel_centroid_cloud = super.getVoxelCentroidCloud();
-        PointCloudT::Ptr full_colored_cloud = super.getColoredCloud();
         PointNCloudT::Ptr sv_normal_cloud = super.makeSupervoxelNormalCloud(
                 supervoxel_clusters);
         PointLCloudT::Ptr full_labeled_cloud = super.getLabeledCloud();
@@ -372,13 +370,10 @@ int main(int argc, char ** argv) {
         console::print_info("Refining supervoxels...\n");
         super.refineSupervoxels(3, refined_supervoxel_clusters);
 
-        PointCloudT::Ptr refined_colored_voxel_cloud =
-                super.getColoredVoxelCloud();
         PointNCloudT::Ptr refined_sv_normal_cloud =
                 super.makeSupervoxelNormalCloud(refined_supervoxel_clusters);
         PointLCloudT::Ptr refined_full_labeled_cloud = super.getLabeledCloud();
-        PointCloudT::Ptr refined_full_colored_cloud = super.getColoredCloud();
-
+        
         console::print_info(
                 "Constructing Boost Graph Library Adjacency List...\n");
         typedef adjacency_list<setS, setS, undirectedS, uint32_t, float>
@@ -450,7 +445,7 @@ int main(int argc, char ** argv) {
         std::pair<ClusteringT, AdjacencyMapT> s =
                 segmentation.get_currentstate();
 
-        colored_voxel_cloud = segmentation.get_colored_cloud();
+        PointCloudT::Ptr colored_voxel_cloud = segmentation.get_colored_cloud();
         label_adjacency = s.second;
 
         ////////////////////////////////////////////////////////////
