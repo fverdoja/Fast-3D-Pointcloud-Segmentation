@@ -192,7 +192,7 @@ float * ColorUtilities::rgb2lab(float rgb[3]) {
     rgb2[1] = rgb[1] / 255;
     rgb2[2] = rgb[2] / 255;
 
-    float * lab = color_conversion(rgb2, CV_RGB2Lab);
+    float * lab = color_conversion(rgb2, cv::COLOR_RGB2Lab);
 
     return lab;
 }
@@ -205,7 +205,7 @@ float * ColorUtilities::rgb2lab(float rgb[3]) {
  * @return the corresponding RGB color to the given L*a*b* color
  */
 float * ColorUtilities::lab2rgb(float lab[3]) {
-    float * rgb = color_conversion(lab, CV_Lab2RGB);
+    float * rgb = color_conversion(lab, cv::COLOR_Lab2RGB);
 
     rgb[0] *= 255;
     rgb[1] *= 255;
