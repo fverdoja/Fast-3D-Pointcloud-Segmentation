@@ -12,7 +12,7 @@ Segmentation of 3D colored point clouds is a research field with renewed interes
 
 ## Dependencies
 
-The code is based in C++ and requires PCL 1.7+ and OpenCV to work
+The code is based in C++ and requires PCL 1.9+ and OpenCV4 to work
 
 ## Compilation
 
