@@ -43,6 +43,7 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/common/colors.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -59,20 +60,15 @@ struct Color {
 
 typedef PointXYZRGBA PointT;
 typedef Supervoxel<PointT> SupervoxelT;
-typedef std::map<uint32_t, Color> LookupTable;
 
 const float RGB_RANGE = 441.672943;
 const float LAB_RANGE = 137.3607;
-const std::string GLASBEY_FILE = "../Src/glasbey.lut";  // change path if needed
 
 /**
  * Utility class containing functions related to color management and 
  * conversion.
  */
 class ColorUtilities {
-    static const LookupTable glasbey;
-
-    static LookupTable init_glasbey();
     static float * color_conversion(float in[3], int code);
     static float ciede00_test(float L1, float a1, float b1, float L2, float a2,
             float b2, float result);

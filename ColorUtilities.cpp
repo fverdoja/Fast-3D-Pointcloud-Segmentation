@@ -39,44 +39,6 @@
 
 #include "ColorUtilities.h"
 
-const LookupTable ColorUtilities::glasbey = ColorUtilities::init_glasbey();
-
-/**
- * Load the Glasbey lookup table from file. To change file path, modify the 
- * value of the GLASBEY_FILE variable in ColorUtilities.h
- * 
- * @return the Glasbey lookup table as read from the glasbey.lut file
- */
-LookupTable ColorUtilities::init_glasbey() {
-    LookupTable glas;
-
-    std::ifstream f;
-    f.open(GLASBEY_FILE.c_str());
-    if (!f.is_open())
-        throw std::runtime_error(
-            "File 'glasbey.lut' cannot be opened."
-            " Please verify that the path is correct and in read access: "
-            + GLASBEY_FILE);
-
-    while (!f.eof()) {
-        int l = 0;
-        int r = 0;
-        int g = 0;
-        int b = 0;
-
-        f >> l >> r >> g >> b; // reads a line from the file, interpeting 
-                               // the first number as label and the following
-                               // three as red, green and blue values
-                               // respectively
-
-        Color rgb = {(uint8_t) r, (uint8_t) g, (uint8_t) b};
-        glas.insert(std::pair<uint32_t, Color>(l, rgb));
-    }
-
-    f.close();
-    return glas;
-}
-
 /**
  * Convert from one color space to another
  * 
@@ -137,11 +99,11 @@ float ColorUtilities::ciede00_test(float L1, float a1, float b1, float L2,
  * @return the color corresponding to the given label
  */
 uint8_t * ColorUtilities::get_glasbey(uint32_t label) {
-    Color c = glasbey.at(label % 256);
+    RGB color = GlasbeyLUT::at(label % GlasbeyLUT::size());
     uint8_t * rgb = new uint8_t[3];
-    rgb[0] = c.data[0];
-    rgb[1] = c.data[1];
-    rgb[2] = c.data[2];
+    rgb[0] = color.r;
+    rgb[1] = color.g;
+    rgb[2] = color.b;
     return rgb;
 }
 
