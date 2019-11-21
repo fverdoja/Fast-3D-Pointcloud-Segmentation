@@ -5,7 +5,7 @@ project(supervoxel_clustering)
 add_compile_options(-std=c++11)
 
 ## Option to compile with or withour ROS compatibility (through Catkin)
-## To use this package without ROS support call cmake with the option: -DUSE_CATKIN:OFF
+## To use this package without ROS support call cmake with the option: -DUSE_CATKIN=OFF
 ## Default is ON (i.e., ROS support enabled)
 option(USE_CATKIN "Use Catkin to enable ROS support" ON)
 

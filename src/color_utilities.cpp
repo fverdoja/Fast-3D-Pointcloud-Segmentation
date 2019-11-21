@@ -2,12 +2,12 @@
  * color_utilities.cpp
  *
  *  Created on: 01/06/2015
- *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2018, Francesco Verdoja
+ * Copyright (c) 2015, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without

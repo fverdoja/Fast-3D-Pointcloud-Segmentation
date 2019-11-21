@@ -1,7 +1,7 @@
 /*
  * supervoxel_clustering.cpp
  *
- *  Created on: 10/05/2019
+ *  Created on: 10/05/2015
  *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *    Based on: example_supervoxels.cpp from PointCloudLibrary:
  *              https://github.com/PointCloudLibrary/pcl/commits/master/
@@ -10,7 +10,7 @@
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2019, Francesco Verdoja
+ * Copyright (c) 2015, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without

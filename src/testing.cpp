@@ -1,13 +1,13 @@
 /*
  * testing.cpp
  *
- *  Created on: 13/07/2019
+ *  Created on: 13/07/2015
  *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2019, Francesco Verdoja
+ * Copyright (c) 2015, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without

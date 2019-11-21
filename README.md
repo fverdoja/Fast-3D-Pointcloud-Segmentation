@@ -12,11 +12,29 @@ Segmentation of 3D colored point clouds is a research field with renewed interes
 
 ## Dependencies
 
-The code is based in C++ and requires PCL 1.8+ and OpenCV4 to work
+The code is based on C++ and requires PCL 1.8+ and OpenCV4 to work.
+Optionally, the code supports ROS integration. If ROS support is required, Catkin is required.
 
 ## Compilation
 
-The code can be compiled by running `cmake` followed by  `make`
+### With ROS support
+
+The default option for this code is to compile with ROS support enabled. In this case, placing this package inside a Catkin workspace should work.
+
+Be mindful that `git clone` by default will put this package in a folder called _Fast-3D-Pointcloud-Segmentation_, might be necessary to rename that
+folder to _supervoxel\_clustering_.
+
+Then, the workspace can be compiled like usual with Catkin.
+
+### Without ROS support
+
+To use this package without ROS the option `-DUSE_CATKIN=OFF` must be used while calling `cmake`, like this:
+```
+mkdir build
+cd build
+cmake -DUSE_CATKIN=OFF ..
+make
+```
 
 ## Use
 
@@ -45,3 +63,7 @@ Syntax is: ./supervoxel_segmentation {-d <direcory-of-pcd-files> OR -p <pcd-file
          --NT                           (disables use of single camera transform) 
          --V                            (verbose)
 ```
+
+### From ROS
+
+If used with ROS support enabled, the executable can be called from launch files. One example launch file is provided in the _launch_ folder.
