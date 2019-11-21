@@ -68,3 +68,5 @@ Syntax is: ./supervoxel_clustering {-d <direcory-of-pcd-files> OR -p <pcd-file>}
 ### From ROS
 
 If used with ROS support enabled, the executable can be called from launch files. One example launch file is provided in the _launch_ folder.
+
+For a more complete ROS node implementation, please have a look at [this repository](https://github.com/aalto-intelligent-robotics/point_cloud_segmentation).
