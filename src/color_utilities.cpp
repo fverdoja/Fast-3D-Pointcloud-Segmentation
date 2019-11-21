@@ -1,5 +1,5 @@
 /*
- * ColorUtilities.cpp
+ * color_utilities.cpp
  *
  *  Created on: 01/06/2015
  *      Author: Francesco Verdoja <verdoja@di.unito.it>
@@ -37,7 +37,7 @@
  *
  */
 
-#include "ColorUtilities.h"
+#include "supervoxel_clustering/color_utilities.h"
 
 /**
  * Convert from one color space to another
@@ -99,7 +99,7 @@ float ColorUtilities::ciede00_test(float L1, float a1, float b1, float L2,
  * @return the color corresponding to the given label
  */
 uint8_t * ColorUtilities::get_glasbey(uint32_t label) {
-    RGB color = GlasbeyLUT::at(label % GlasbeyLUT::size());
+    pcl::RGB color = pcl::GlasbeyLUT::at(label % pcl::GlasbeyLUT::size());
     uint8_t * rgb = new uint8_t[3];
     rgb[0] = color.r;
     rgb[1] = color.g;
@@ -115,8 +115,8 @@ uint8_t * ColorUtilities::get_glasbey(uint32_t label) {
  * @return the mean color of all points as an array of RGB values
  */
 float * ColorUtilities::mean_color(SupervoxelT::Ptr s) {
-    PointCloud<PointT>::Ptr v = s->voxels_;
-    PointCloud<PointT>::iterator v_itr, v_itr_end;
+    pcl::PointCloud<PointT>::Ptr v = s->voxels_;
+    pcl::PointCloud<PointT>::iterator v_itr, v_itr_end;
     v_itr = v->begin();
     v_itr_end = v->end();
     float count = 0;
@@ -322,30 +322,30 @@ float ColorUtilities::rgb_eucl(float rgb1[3], float rgb2[3]) {
  * Perform an euclidean distance test in RGB space
  */
 void ColorUtilities::rgb_test() {
-    console::print_info("Performing RGB euclidean distance test...\n");
+    pcl::console::print_info("Performing RGB euclidean distance test...\n");
     float rgb1[] = {0, 0, 0};
-    console::print_debug("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb1, rgb1));
+    pcl::console::print_debug("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb1, rgb1));
 
     float rgb2[] = {255, 255, 255};
-    console::print_debug("Distance: %f\t(exp: 441.672943)\n",
+    pcl::console::print_debug("Distance: %f\t(exp: 441.672943)\n",
             rgb_eucl(rgb1, rgb2));
 
-    console::print_debug("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb2, rgb2));
+    pcl::console::print_debug("Distance: %f\t(exp: 0)\n", rgb_eucl(rgb2, rgb2));
 
     float rgb3[] = {255, 0, 0};
-    console::print_debug("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb1, rgb3));
+    pcl::console::print_debug("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb1, rgb3));
 
     float rgb4[] = {0, 255, 0};
-    console::print_debug("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb4, rgb1));
+    pcl::console::print_debug("Distance: %f\t(exp: 255)\n", rgb_eucl(rgb4, rgb1));
 
     float rgb5[] = {0, 255, 0};
     float rgb6[] = {255, 0, 255};
-    console::print_debug("Distance: %f\t(exp: 441.672943)\n",
+    pcl::console::print_debug("Distance: %f\t(exp: 441.672943)\n",
             rgb_eucl(rgb5, rgb6));
 
     float rgb7[] = {100, 20, 35};
     float rgb8[] = {104, 20, 32};
-    console::print_debug("Distance: %f\t(exp: 5)\n", rgb_eucl(rgb7, rgb8));
+    pcl::console::print_debug("Distance: %f\t(exp: 5)\n", rgb_eucl(rgb7, rgb8));
 }
 
 /**
@@ -353,7 +353,7 @@ void ColorUtilities::rgb_test() {
  */
 void ColorUtilities::lab_test() {
     float err = 0;
-    console::print_info("Performing LAB CIEDE2000 test... \n");
+    pcl::console::print_info("Performing LAB CIEDE2000 test... \n");
     err = std::max(err,
             ciede00_test(50.0000, 2.6772, -79.7751, 50.0000, 0.0000, -82.7485,
             2.0425));
@@ -456,19 +456,19 @@ void ColorUtilities::lab_test() {
     err = std::max(err,
             ciede00_test(2.0776, 0.0795, -1.1350, 0.9033, -0.0636, -0.5514,
             0.9082));
-    console::print_debug("Lab test max error: %f\n", err);
+    pcl::console::print_debug("Lab test max error: %f\n", err);
 }
 
 /**
  * Perform a color conversion test from RGB to L*a*b* space
  */
 void ColorUtilities::convert_test() {
-    console::print_info("Performing RGB-LAB Conversion test...\n");
+    pcl::console::print_info("Performing RGB-LAB Conversion test...\n");
     
     float rgb1[] = {123, 10, 200};
     float * lab1 = rgb2lab(rgb1);
     float * rgb1c = lab2rgb(lab1);
-    console::print_debug(
+    pcl::console::print_debug(
             "rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
             rgb1[0], rgb1[1], rgb1[2], lab1[0], lab1[1], lab1[2], rgb1c[0],
             rgb1c[1], rgb1c[2]);
@@ -476,7 +476,7 @@ void ColorUtilities::convert_test() {
     float rgb2[] = {0, 0, 0};
     float * lab2 = rgb2lab(rgb2);
     float * rgb2c = lab2rgb(lab2);
-    console::print_debug(
+    pcl::console::print_debug(
             "rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
             rgb2[0], rgb2[1], rgb2[2], lab2[0], lab2[1], lab2[2], rgb2c[0],
             rgb2c[1], rgb2c[2]);
@@ -484,7 +484,7 @@ void ColorUtilities::convert_test() {
     float rgb3[] = {255, 255, 255};
     float * lab3 = rgb2lab(rgb3);
     float * rgb3c = lab2rgb(lab3);
-    console::print_debug(
+    pcl::console::print_debug(
             "rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
             rgb3[0], rgb3[1], rgb3[2], lab3[0], lab3[1], lab3[2], rgb3c[0],
             rgb3c[1], rgb3c[2]);
@@ -492,7 +492,7 @@ void ColorUtilities::convert_test() {
     float rgb4[] = {255, 255, 0};
     float * lab4 = rgb2lab(rgb4);
     float * rgb4c = lab2rgb(lab4);
-    console::print_debug(
+    pcl::console::print_debug(
             "rgb[%f, %f, %f]\t=>\tlab[%f, %f, %f]\t=>\trgb[%f, %f, %f]\n",
             rgb4[0], rgb4[1], rgb4[2], lab4[0], lab4[1], lab4[2], rgb4c[0],
             rgb4c[1], rgb4c[2]);

@@ -1,13 +1,13 @@
 /*
- * ClusteringState.h
+ * clustering_state.h
  *
- *  Created on: 01/06/2015
- *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *  Created on: 01/06/2019
+ *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2018, Francesco Verdoja
+ * Copyright (c) 2019, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -44,10 +44,8 @@
 #include <pcl/point_types.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
-using namespace pcl;
-
-typedef PointXYZRGBA PointT;
-typedef Supervoxel<PointT> SupervoxelT;
+typedef pcl::PointXYZRGBA PointT;
+typedef pcl::Supervoxel<PointT> SupervoxelT;
 typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<float, std::pair<uint32_t, uint32_t> > WeightMapT;
 typedef std::pair<float, std::pair<uint32_t, uint32_t> > WeightedPairT;

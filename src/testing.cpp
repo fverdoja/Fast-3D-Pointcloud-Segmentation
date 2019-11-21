@@ -1,13 +1,13 @@
 /*
- * Testing.cpp
+ * testing.cpp
  *
- *  Created on: 13/07/2015
- *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *  Created on: 13/07/2019
+ *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2018, Francesco Verdoja
+ * Copyright (c) 2019, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
  *
  */
 
-#include "Testing.h"
+#include "supervoxel_clustering/testing.h"
 
 /**
  * Initialize values of all performance scores, used in the constructor
@@ -117,28 +117,28 @@ void Testing::compute_intersections() {
                 it_ts->second);
         int64_t row;
         size_t max = col.maxCoeff(&row);
-        console::print_debug("Testing best match: %d - %d - %d\t",
+        pcl::console::print_debug("Testing best match: %d - %d - %d\t",
                 it_ts->second, max, row);
         while ((matches == row).any()) {
             col(row) = 0;
             if (col.array().any()) {
                 size_t max = col.maxCoeff(&row);
-                console::print_debug("NO\nTesting best match: %d - %d - %d\t",
+                pcl::console::print_debug("NO\nTesting best match: %d - %d - %d\t",
                         it_ts->second, max, row);
             } else {
                 row = -1;
-                console::print_debug("NO\nBest match not found: %d\t",
+                pcl::console::print_debug("NO\nBest match not found: %d\t",
                         it_ts->second);
                 break;
             }
         }
-        console::print_debug("OK\n");
+        pcl::console::print_debug("OK\n");
         matches(it_ts->second) = row;
     }
 
     /*
      * TODO 
-     * The following lines should use console::print_debug, disabled for the
+     * The following lines should use pcl::console::print_debug, disabled for the
      * moment. Can be uncommented while debugging this class.
      */
     //std::cout << "Intersection matrix:\n" << inter_matrix << "\n";
@@ -174,7 +174,7 @@ PointLCloudT::Ptr Testing::extract_label_cloud(PointLCloudT::Ptr c,
  */
 size_t Testing::count_intersect(PointLCloudT::Ptr c1,
         PointLCloudT::Ptr c2) const {
-    console::print_debug("Searching intersection: %d - %d\n", c1->size(),
+    pcl::console::print_debug("Searching intersection: %d - %d\n", c1->size(),
             c2->size());
 
     compareXYZ cmp;
@@ -201,7 +201,7 @@ size_t Testing::count_intersect(PointLCloudT::Ptr c1,
  * @return the cardinality of the union of the two given regions
  */
 size_t Testing::count_union(PointLCloudT::Ptr c1, PointLCloudT::Ptr c2) const {
-    console::print_debug("Searching union: %d - %d\n", c1->size(), c2->size());
+    pcl::console::print_debug("Searching union: %d - %d\n", c1->size(), c2->size());
 
     compareXYZ cmp;
 
@@ -290,7 +290,7 @@ float Testing::eval_fscore() {
         eval_precision();
 
     if (precision == 0 && recall == 0) {
-        console::print_warn(
+        pcl::console::print_warn(
                 "Both precision and recall equal to 0; setting f-score to 0 to avoid denominator to be equal to 0.");
         fscore = 0;
     } else

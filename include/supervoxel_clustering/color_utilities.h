@@ -1,13 +1,13 @@
 /*
- * ColorUtilities.h
+ * color_utilities.h
  *
- *  Created on: 01/06/2015
- *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *  Created on: 01/06/2019
+ *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2018, Francesco Verdoja
+ * Copyright (c) 2019, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -52,14 +52,12 @@
 #include <fstream>
 #include <math.h>
 
-using namespace pcl;
-
 struct Color {
     uint8_t data[3];
 };
 
-typedef PointXYZRGBA PointT;
-typedef Supervoxel<PointT> SupervoxelT;
+typedef pcl::PointXYZRGBA PointT;
+typedef pcl::Supervoxel<PointT> SupervoxelT;
 
 const float RGB_RANGE = 441.672943;
 const float LAB_RANGE = 137.3607;

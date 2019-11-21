@@ -1,13 +1,13 @@
 /*
- * ClusteringState.cpp
+ * clustering_state.cpp
  *
- *  Created on: 01/06/2015
- *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *  Created on: 01/06/2019
+ *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2018, Francesco Verdoja
+ * Copyright (c) 2019, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
  *
  */
 
-#include "ClusteringState.h"
+#include "supervoxel_clustering/clustering_state.h"
 
 /**
  * Initialize a new clustering graph

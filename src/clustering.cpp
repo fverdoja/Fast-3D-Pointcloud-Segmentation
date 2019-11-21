@@ -1,15 +1,15 @@
 /*
- * Clustering.cpp
+ * clustering.cpp
  * 
  *  This class 
  *  
- *  Created on: 19/05/2015
- *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *  Created on: 19/05/2019
+ *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2018, Francesco Verdoja
+ * Copyright (c) 2019, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@
  *
  */
 
-#include "Clustering.h"
+#include "supervoxel_clustering/clustering.h"
 
 /**
  * Test if two regions form a convex angle between them
@@ -389,11 +389,11 @@ void Clustering::cluster(ClusteringState start, float threshold) {
     WeightedPairT next;
     while (!state.weight_map.empty()
             && (next = state.get_first_weight(), next.first < threshold)) {
-        console::print_debug("left: %de/%dp - w: %f - [%d, %d]...",
+        pcl::console::print_debug("left: %de/%dp - w: %f - [%d, %d]...",
                 state.weight_map.size(), state.segments.size(), next.first,
                 next.second.first, next.second.second);
         merge(next.second);
-        console::print_debug("OK\n");
+        pcl::console::print_debug("OK\n");
     }
 }
 
@@ -630,7 +630,7 @@ std::pair<ClusteringT, AdjacencyMapT> Clustering::get_currentstate() const {
  * 
  * @return a colored pointcloud
  */
-PointCloud<PointT>::Ptr Clustering::get_colored_cloud() const {
+PointCloudT::Ptr Clustering::get_colored_cloud() const {
     return label2color(get_labeled_cloud());
 }
 
@@ -639,19 +639,19 @@ PointCloud<PointT>::Ptr Clustering::get_colored_cloud() const {
  * 
  * @return a labelled pointcloud
  */
-PointCloud<PointXYZL>::Ptr Clustering::get_labeled_cloud() const {
-    PointCloud<PointXYZL>::Ptr label_cloud(new PointCloud<PointXYZL>);
+PointLCloudT::Ptr Clustering::get_labeled_cloud() const {
+    PointLCloudT::Ptr label_cloud(new PointLCloudT);
 
     ClusteringT::const_iterator it = state.segments.begin();
     ClusteringT::const_iterator it_end = state.segments.end();
 
     uint32_t current_l = 0;
     for (; it != it_end; ++it) {
-        PointCloud<PointT> cloud = *(it->second->voxels_);
-        PointCloud<PointT>::iterator it_cloud = cloud.begin();
-        PointCloud<PointT>::iterator it_cloud_end = cloud.end();
+        PointCloudT cloud = *(it->second->voxels_);
+        PointCloudT::iterator it_cloud = cloud.begin();
+        PointCloudT::iterator it_cloud_end = cloud.end();
         for (; it_cloud != it_cloud_end; ++it_cloud) {
-            PointXYZL p;
+            PointLT p;
             p.x = it_cloud->x;
             p.y = it_cloud->y;
             p.z = it_cloud->z;
@@ -691,7 +691,7 @@ void Clustering::cluster(float threshold) {
  * @return a map collecting all metric scores for each threshold value
  */
 std::map<float, performanceSet> Clustering::all_thresh(
-        PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+        PointLCloudT::Ptr ground_truth, float start_thresh,
         float end_thresh, float step_thresh) {
     if (start_thresh < 0 || start_thresh > 1 || end_thresh < 0 || end_thresh > 1
             || step_thresh < 0 || step_thresh > 1) {
@@ -699,14 +699,14 @@ std::map<float, performanceSet> Clustering::all_thresh(
                 "start_thresh, end_thresh and/or step_thresh outside of range [0, 1]");
     }
     if (start_thresh > end_thresh) {
-        console::print_warn(
+        pcl::console::print_warn(
                 "Start threshold greater then end threshold, inverting.\n");
         float temp = end_thresh;
         end_thresh = start_thresh;
         start_thresh = temp;
     }
 
-    console::print_info("Testing thresholds from %f to %f (step %f)\n",
+    pcl::console::print_info("Testing thresholds from %f to %f (step %f)\n",
             start_thresh, end_thresh, step_thresh);
 
     std::map<float, performanceSet> thresholds;
@@ -714,7 +714,7 @@ std::map<float, performanceSet> Clustering::all_thresh(
     Testing test(get_labeled_cloud(), ground_truth);
     performanceSet p = test.eval_performance();
     thresholds.insert(std::pair<float, performanceSet>(start_thresh, p));
-    console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n",
+    pcl::console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n",
             start_thresh, p.fscore, p.voi, p.wov);
 
     for (float t = start_thresh + step_thresh; t <= end_thresh; t +=
@@ -723,7 +723,7 @@ std::map<float, performanceSet> Clustering::all_thresh(
         test.set_segm(get_labeled_cloud());
         p = test.eval_performance();
         thresholds.insert(std::pair<float, performanceSet>(t, p));
-        console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n", t,
+        pcl::console::print_info("<T, Fscore, voi, wov> = <%f, %f, %f, %f>\n", t,
                 p.fscore, p.voi, p.wov);
     }
 
@@ -742,7 +742,7 @@ std::map<float, performanceSet> Clustering::all_thresh(
  * @return the best performance and the relative threshold
  */
 std::pair<float, performanceSet> Clustering::best_thresh(
-        PointCloud<PointLT>::Ptr ground_truth, float start_thresh,
+        PointLCloudT::Ptr ground_truth, float start_thresh,
         float end_thresh, float step_thresh) {
     std::map<float, performanceSet> thresholds = all_thresh(ground_truth,
             start_thresh, end_thresh, step_thresh);
@@ -792,15 +792,15 @@ void Clustering::test_all() const {
  * 
  * @return the colored pointcloud
  */
-PointCloud<PointT>::Ptr Clustering::label2color(
-        PointCloud<PointLT>::Ptr label_cloud) {
-    PointCloud<PointT>::Ptr colored_cloud(new PointCloud<PointT>);
-    PointCloud<PointLCT>::Ptr temp_cloud(new PointCloud<PointLCT>);
+PointCloudT::Ptr Clustering::label2color(
+        PointLCloudT::Ptr label_cloud) {
+    PointCloudT::Ptr colored_cloud(new PointCloudT);
+    pcl::PointCloud<PointLCT>::Ptr temp_cloud(new pcl::PointCloud<PointLCT>);
 
     copyPointCloud(*label_cloud, *temp_cloud);
 
-    PointCloud<PointLCT>::iterator it = temp_cloud->begin();
-    PointCloud<PointLCT>::iterator it_end = temp_cloud->end();
+    pcl::PointCloud<PointLCT>::iterator it = temp_cloud->begin();
+    pcl::PointCloud<PointLCT>::iterator it_end = temp_cloud->end();
 
     for (; it != it_end; ++it) {
         uint8_t * rgb = ColorUtilities::get_glasbey(it->label);
@@ -822,15 +822,15 @@ PointCloud<PointT>::Ptr Clustering::label2color(
  * 
  * @return a labelled pointcloud
  */
-PointCloud<PointLT>::Ptr Clustering::color2label(
-        PointCloud<PointT>::Ptr colored_cloud) {
-    PointCloud<PointLT>::Ptr label_cloud(new PointCloud<PointLT>);
-    PointCloud<PointLCT>::Ptr temp_cloud(new PointCloud<PointLCT>);
+PointLCloudT::Ptr Clustering::color2label(
+        PointCloudT::Ptr colored_cloud) {
+    PointLCloudT::Ptr label_cloud(new PointLCloudT);
+    pcl::PointCloud<PointLCT>::Ptr temp_cloud(new pcl::PointCloud<PointLCT>);
     std::map<float, uint32_t> mappings;
     copyPointCloud(*colored_cloud, *temp_cloud);
 
-    PointCloud<PointLCT>::iterator it = temp_cloud->begin();
-    PointCloud<PointLCT>::iterator it_end = temp_cloud->end();
+    pcl::PointCloud<PointLCT>::iterator it = temp_cloud->begin();
+    pcl::PointCloud<PointLCT>::iterator it_end = temp_cloud->end();
 
     uint32_t i = 0;
     for (; it != it_end; ++it) {

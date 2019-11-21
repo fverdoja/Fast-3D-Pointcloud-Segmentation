@@ -1,13 +1,13 @@
 /*
- * Testing.h
+ * testing.h
  *
- *  Created on: 13/07/2015
- *      Author: Francesco Verdoja <verdoja@di.unito.it>
+ *  Created on: 13/07/2019
+ *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2018, Francesco Verdoja
+ * Copyright (c) 2019, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -48,10 +48,8 @@
 #include <pcl/console/print.h>
 #include <boost/make_shared.hpp>
 
-using namespace pcl;
-
-typedef PointXYZL PointLT;
-typedef PointCloud<PointLT> PointLCloudT;
+typedef pcl::PointXYZL PointLT;
+typedef pcl::PointCloud<PointLT> PointLCloudT;
 typedef std::vector<PointLT, Eigen::aligned_allocator<PointLT> > PointLVectorT;
 typedef std::map<uint32_t, PointLCloudT::Ptr> labelMapT;
 

@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="pcd_file" default="$(find supervoxel_clustering)/pcd/milk_cartoon_all_small_clorox.pcd" />
+  <arg name="threshold" default="0.2" />
+  <node name="supervoxel_clustering" type="supervoxel_clustering" pkg="supervoxel_clustering" output="screen"
+        args="--CVX --AL -t $(arg threshold) -p $(arg pcd_file)" />
+</launch>
