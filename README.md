@@ -13,6 +13,7 @@ Segmentation of 3D colored point clouds is a research field with renewed interes
 ## Dependencies
 
 The code is based on C++ and requires PCL 1.8+ and OpenCV4 to work.
+
 Optionally, the code supports ROS integration. If ROS support is required, Catkin is required.
 
 ## Compilation
@@ -39,7 +40,7 @@ make
 ## Use
 
 ```
-Syntax is: ./supervoxel_segmentation {-d <direcory-of-pcd-files> OR -p <pcd-file>} [arguments] 
+Syntax is: ./supervoxel_clustering {-d <direcory-of-pcd-files> OR -p <pcd-file>} [arguments] 
 
         SUPERVOXEL optional arguments: 
          -v <voxel-resolution>          (default: 0.008) 
