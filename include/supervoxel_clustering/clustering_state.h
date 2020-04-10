@@ -49,6 +49,9 @@ typedef pcl::Supervoxel<PointT> SupervoxelT;
 typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<float, std::pair<uint32_t, uint32_t> > WeightMapT;
 typedef std::pair<float, std::pair<uint32_t, uint32_t> > WeightedPairT;
+typedef std::pair<float, float> FrictionEstimateT;
+typedef std::map<uint32_t, FrictionEstimateT> FrictionMapT;
+
 
 /**
  * Data structure representing a state of the clustering process. It holds 
@@ -65,13 +68,14 @@ class ClusteringState {
 
     ClusteringT segments;
     WeightMapT weight_map;
+    FrictionMapT friction_map;
 
 public:
 
     ClusteringState() {
     }
     
-    ClusteringState(ClusteringT s, WeightMapT w);
+    ClusteringState(ClusteringT s, WeightMapT w, FrictionMapT friction_map);
 
     /**
      * Get all nodes in the graph
@@ -109,6 +113,26 @@ public:
      */
     void set_weight_map(WeightMapT w) {
         weight_map = w;
+    }
+
+    /**
+     * Get the friction coefficients for all nodes in the graph
+     * 
+     * @return a map containing friction estimates and their confidences for 
+     *         each region of the segmentation, identified by an unique label
+     */
+    FrictionMapT get_friction_map() const {
+        return friction_map;
+    }
+
+    /**
+     * Set the friction coefficients for all nodes in the graph
+     * 
+     * @param f a map containing friction estimates and their confidences for 
+     *          each region of the segmentation, identified by an unique label
+     */
+    void set_friction_map(FrictionMapT f) {
+        friction_map = f;
     }
 
     /**

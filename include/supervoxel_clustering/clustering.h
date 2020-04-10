@@ -48,6 +48,14 @@
 #include "clustering_state.h"
 #include "testing.h"
 
+struct comp_points {
+  bool operator() (const pcl::PointXYZ a, const pcl::PointXYZ b) const {
+    return (a.x < b.x) || 
+           (a.x == b.x && a.y < b.y) || 
+           (a.x == b.x && a.y == b.y && a.z < b.z);
+  }
+};
+
 typedef pcl::Normal Normal;
 typedef pcl::PointXYZRGBA PointT;
 typedef pcl::PointXYZL PointLT;
@@ -58,6 +66,8 @@ typedef pcl::Supervoxel<PointT> SupervoxelT;
 typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<uint32_t, uint32_t> AdjacencyMapT;
 typedef std::multiset<float> DeltasDistribT;
+typedef std::pair<pcl::PointXYZ, std::array<double,3>> HapticPointT;
+typedef std::map<pcl::PointXYZ, std::array<double,3>, comp_points> HapticTrackT;
 
 enum ColorDistance {
     LAB_CIEDE00, RGB_EUCL
@@ -65,6 +75,10 @@ enum ColorDistance {
 
 enum GeometricDistance {
     NORMALS_DIFF, CONVEX_NORMALS_DIFF
+};
+
+enum HapticDistance {
+    AVERAGE_FRICTION
 };
 
 enum MergingCriterion {
@@ -84,28 +98,36 @@ enum MergingCriterion {
 class Clustering {
     ColorDistance delta_c_type;
     GeometricDistance delta_g_type;
+    HapticDistance delta_h_type;
     MergingCriterion merging_type;
     float lambda;
     short bins_num;
-    std::map<short, float> cdf_c, cdf_g;
+    std::map<short, float> cdf_c, cdf_g, cdf_h;
     bool set_initial_state, init_initial_weights;
     ClusteringState initial_state, state;
+    HapticTrackT haptic_track;
 
     bool is_convex(Normal norm1, PointT centroid1, Normal norm2,
             PointT centroid2) const;
     float normals_diff(Normal norm1, PointT centroid1, Normal norm2,
             PointT centroid2) const;
+    float average_friction(SupervoxelT::Ptr supvox) const;
     std::pair<float, float> delta_c_g(SupervoxelT::Ptr supvox1,
             SupervoxelT::Ptr supvox2) const;
-    float delta(SupervoxelT::Ptr supvox1, SupervoxelT::Ptr supvox2) const;
+    float delta_h(FrictionEstimateT f1, FrictionEstimateT f2) const;
+    float delta(SupervoxelT::Ptr supvox1, SupervoxelT::Ptr supvox2,
+            FrictionEstimateT f1, FrictionEstimateT f2) const;
     AdjacencyMapT weight2adj(WeightMapT w_map) const;
     WeightMapT adj2weight(ClusteringT segm, AdjacencyMapT adj_map) const;
+    FrictionMapT estimate_frictions(ClusteringT) const;
+    void estimate_missing_frictions(FrictionMapT *) const;
     void init_weights();
     void init_merging_parameters(DeltasDistribT deltas_c,
-            DeltasDistribT deltas_g);
+            DeltasDistribT deltas_g, DeltasDistribT deltas_h);
     std::map<short, float> compute_cdf(DeltasDistribT dist);
     float t_c(float delta_c) const;
     float t_g(float delta_g) const;
+    float t_h(float delta_h) const;
     void cluster(ClusteringState start, float threshold);
     void merge(std::pair<uint32_t, uint32_t> supvox_ids);
 
@@ -116,7 +138,7 @@ class Clustering {
 public:
 
     Clustering();
-    Clustering(ColorDistance c, GeometricDistance g, MergingCriterion m);
+    Clustering(ColorDistance c, GeometricDistance g, HapticDistance h, MergingCriterion m);
 
     /**
      * Set the type of color distance to be used
@@ -136,10 +158,20 @@ public:
         delta_g_type = d;
     }
 
+    /**
+     * Set the type of haptic distance to be used
+     * 
+     * @param d a type of haptic distance
+     */
+    void set_delta_h(HapticDistance d) {
+        delta_h_type = d;
+    }
+
     void set_merging(MergingCriterion m);
     void set_lambda(float l);
     void set_bins_num(short b);
     void set_initialstate(ClusteringT segm, AdjacencyMapT adj);
+    void set_initialstate(ClusteringT segm, AdjacencyMapT adj, HapticTrackT track);
 
     /**
      * Get the type of color distance used
@@ -157,6 +189,15 @@ public:
      */
     GeometricDistance get_delta_g() const {
         return delta_g_type;
+    }
+
+    /**
+     * Get the type of haptic distance used
+     * 
+     * @return a type of haptic distance
+     */
+    HapticDistance get_delta_h() const {
+        return delta_h_type;
     }
 
     /**
