@@ -1,13 +1,13 @@
 /*
- * clustering_state.h
+ * supervoxel.h
  *
- *  Created on: 01/06/2015
+ *  Created on: 20/04/2020
  *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2015, Francesco Verdoja
+ * Copyright (c) 2020, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -37,17 +37,14 @@
  *
  */
 
-#ifndef CLUSTERINGSTATE_H_
-#define CLUSTERINGSTATE_H_
+#ifndef SUPERVOXEL_H_
+#define SUPERVOXEL_H_
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-
-#include "supervoxel.h"
+#include <pcl/segmentation/supervoxel_clustering.h>
 
 typedef pcl::PointXYZRGBA PointT;
-typedef Supervoxel<PointT> SupervoxelT;
-typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<float, std::pair<uint32_t, uint32_t> > WeightMapT;
 typedef std::pair<float, std::pair<uint32_t, uint32_t> > WeightedPairT;
 typedef std::pair<float, float> FrictionEstimateT;
@@ -64,87 +61,9 @@ typedef std::map<uint32_t, FrictionEstimateT> FrictionMapT;
  * contains the weight of the edge connecting the nodes identified by those 
  * labels. This map is sorted from the smallest weight to the biggest.
  */
-class ClusteringState {
-    friend class Clustering;
-
-    ClusteringT segments;
-    WeightMapT weight_map;
-    FrictionMapT friction_map;
-
-public:
-
-    ClusteringState() {
-    }
+template <typename PointT>
+class Supervoxel : public pcl::Supervoxel<PointT> {
     
-    ClusteringState(ClusteringT s, WeightMapT w, FrictionMapT friction_map);
-
-    /**
-     * Get all nodes in the graph
-     * 
-     * @return a map containing the regions of the segmentations, each 
-     *         identified by an unique label
-     */
-    ClusteringT get_segments() const {
-        return segments;
-    }
-
-    /**
-     * Set values for all nodes in the graph
-     * 
-     * @param s a map containing the regions of the segmentations, each 
-     *          identified by an unique label
-     */
-    void set_segments(ClusteringT s) {
-        segments = s;
-    }
-
-    /**
-     * Get the weight map of the graph
-     * 
-     * @return a multimap containing the edge weights of the graph
-     */
-    WeightMapT get_weight_map() const {
-        return weight_map;
-    }
-
-    /**
-     * Set all edge weights to the given map
-     * 
-     * @param w a multimap containing the edge weights of the graph
-     */
-    void set_weight_map(WeightMapT w) {
-        weight_map = w;
-    }
-
-    /**
-     * Get the friction coefficients for all nodes in the graph
-     * 
-     * @return a map containing friction estimates and their confidences for 
-     *         each region of the segmentation, identified by an unique label
-     */
-    FrictionMapT get_friction_map() const {
-        return friction_map;
-    }
-
-    /**
-     * Set the friction coefficients for all nodes in the graph
-     * 
-     * @param f a map containing friction estimates and their confidences for 
-     *          each region of the segmentation, identified by an unique label
-     */
-    void set_friction_map(FrictionMapT f) {
-        friction_map = f;
-    }
-
-    /**
-     * Get the pair of nodes connected by the edge having the smallest weight
-     * 
-     * @return a pair of labels corresponding to the two most similar nodes in 
-     *         the graph, and the weight of the edge connecting them
-     */
-    WeightedPairT get_first_weight() const {
-        return *(weight_map.begin());
-    }
 };
 
-#endif /* CLUSTERINGSTATE_H_ */
+#endif /* SUPERVOXEL_H_ */

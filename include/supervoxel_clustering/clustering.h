@@ -42,8 +42,8 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/segmentation/supervoxel_clustering.h>
 
+#include "supervoxel.h"
 #include "color_utilities.h"
 #include "clustering_state.h"
 #include "testing.h"
@@ -62,7 +62,7 @@ typedef pcl::PointXYZL PointLT;
 typedef pcl::PointXYZRGBL PointLCT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 typedef pcl::PointCloud<PointLT> PointLCloudT;
-typedef pcl::Supervoxel<PointT> SupervoxelT;
+typedef Supervoxel<PointT> SupervoxelT;
 typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<uint32_t, uint32_t> AdjacencyMapT;
 typedef std::multiset<float> DeltasDistribT;

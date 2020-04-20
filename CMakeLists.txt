@@ -34,7 +34,7 @@ find_package(OpenCV REQUIRED)
 if(USE_CATKIN)
   catkin_package(
     INCLUDE_DIRS include
-    LIBRARIES clustering color_utilities clustering_state testing
+    LIBRARIES clustering color_utilities supervoxel clustering_state testing
     CATKIN_DEPENDS roscpp
     DEPENDS PCL OpenCV
   )
@@ -58,6 +58,7 @@ add_definitions(${PCL_DEFINITIONS})
 ## Declare a C++ library
 add_library(clustering src/clustering.cpp)
 add_library(color_utilities src/color_utilities.cpp)
+add_library(supervoxel src/supervoxel.cpp)
 add_library(clustering_state src/clustering_state.cpp)
 add_library(testing src/testing.cpp)
 
@@ -85,6 +86,7 @@ add_executable(supervoxel_clustering src/supervoxel_clustering.cpp)
 target_link_libraries(supervoxel_clustering
   clustering
   color_utilities
+  supervoxel
   clustering_state
   testing
   ${catkin_LIBRARIES}

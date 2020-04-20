@@ -1,13 +1,13 @@
 /*
- * color_utilities.h
+ * supervoxel.cpp
  *
- *  Created on: 01/06/2015
+ *  Created on: 20/04/2020
  *      Author: Francesco Verdoja <francesco.verdoja@aalto.fi>
  *
  *
  * BSD 3-Clause License
  * 
- * Copyright (c) 2015, Francesco Verdoja
+ * Copyright (c) 2020, Francesco Verdoja
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -37,56 +37,4 @@
  *
  */
 
-#ifndef COLORUTILITIES_H_
-#define COLORUTILITIES_H_
-#define _USE_MATH_DEFINES
-
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/common/colors.h>
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
-#include <iostream>
-#include <fstream>
-#include <math.h>
-
-#include "supervoxel.h"
-
-struct Color {
-    uint8_t data[3];
-};
-
-typedef pcl::PointXYZRGBA PointT;
-typedef Supervoxel<PointT> SupervoxelT;
-
-const float RGB_RANGE = 441.672943;
-const float LAB_RANGE = 137.3607;
-
-/**
- * Utility class containing functions related to color management and 
- * conversion.
- */
-class ColorUtilities {
-    static float * color_conversion(float in[3], int code);
-    static float ciede00_test(float L1, float a1, float b1, float L2, float a2,
-            float b2, float result);
-
-    ColorUtilities() {
-    }
-
-public:
-        
-    static uint8_t * get_glasbey(uint32_t label);
-    static float * mean_color(SupervoxelT::Ptr s);
-    static float * rgb2lab(float rgb[3]);
-    static float * lab2rgb(float lab[3]);
-    static float lab_ciede00(float lab1[3], float lab2[3], double kL = 1.0,
-            double kC = 1.0, double kH = 1.0);
-    static float rgb_eucl(float rgb1[3], float rgb2[3]);
-    static void rgb_test();
-    static void lab_test();
-    static void convert_test();
-};
-
-#endif /* COLORUTILITIES_H_ */
+#include "supervoxel_clustering/supervoxel.h"
