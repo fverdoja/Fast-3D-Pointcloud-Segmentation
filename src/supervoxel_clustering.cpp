@@ -124,7 +124,7 @@ void addSupervoxelConnectionsToViewer(PointT &supervoxel_center,
         PointCloudT &adjacent_supervoxel_centers, std::string supervoxel_name,
         shared_ptr<pcl::visualization::PCLVisualizer> & viewer);
 
-void visualize(std::map<uint32_t, SupervoxelT::Ptr> supervoxel_clusters,
+void visualize(PCLClusteringT supervoxel_clusters,
         PointCloudT::Ptr colored_cloud, PointCloudT::Ptr segm_cloud,
         PointCloudT::Ptr truth_cloud, PointNCloudT::Ptr normal_cloud,
         std::multimap<uint32_t, uint32_t> adjacency);
@@ -350,7 +350,7 @@ int main(int argc, char ** argv) {
         super.setColorImportance(color_importance);
         super.setSpatialImportance(spatial_importance);
         super.setNormalImportance(normal_importance);
-        std::map<uint32_t, pcl::Supervoxel<PointT>::Ptr> supervoxel_clusters;
+        PCLClusteringT supervoxel_clusters;
 
         pcl::console::print_info("Extracting supervoxels...\n");
         super.extract(supervoxel_clusters);
@@ -365,7 +365,7 @@ int main(int argc, char ** argv) {
         std::multimap<uint32_t, uint32_t> label_adjacency;
         super.getSupervoxelAdjacency(label_adjacency);
 
-        std::map<uint32_t, pcl::Supervoxel<PointT>::Ptr> refined_supervoxel_clusters;
+        PCLClusteringT refined_supervoxel_clusters;
         pcl::console::print_info("Refining supervoxels...\n");
         super.refineSupervoxels(3, refined_supervoxel_clusters);
 
@@ -392,7 +392,7 @@ int main(int argc, char ** argv) {
         super_label.setColorImportance(color_importance);
         super_label.setSpatialImportance(spatial_importance);
         super_label.setNormalImportance(normal_importance);
-        std::map<uint32_t, pcl::Supervoxel<PointT>::Ptr> supervoxel_label_clusters;
+        PCLClusteringT supervoxel_label_clusters;
         super_label.extract(supervoxel_label_clusters);
         colored_truth_cloud = super_label.getVoxelCentroidCloud();
         truth_cloud = Clustering::color2label(colored_truth_cloud);
@@ -582,7 +582,7 @@ void addSupervoxelConnectionsToViewer(PointT &supervoxel_center,
     viewer->addModelFromPolyData(polyData, supervoxel_name);
 }
 
-void visualize(std::map<uint32_t, SupervoxelT::Ptr> supervoxel_clusters,
+void visualize(PCLClusteringT supervoxel_clusters,
         PointCloudT::Ptr colored_cloud, PointCloudT::Ptr segm_cloud,
         PointCloudT::Ptr truth_cloud, PointNCloudT::Ptr normal_cloud,
         std::multimap<uint32_t, uint32_t> adjacency) {
@@ -645,7 +645,7 @@ void visualize(std::map<uint32_t, SupervoxelT::Ptr> supervoxel_clusters,
                 // First get the label
                 uint32_t supervoxel_label = label_itr->first;
                 // Now get the supervoxel corresponding to the label
-                SupervoxelT::Ptr supervoxel = supervoxel_clusters.at(
+                pcl::Supervoxel<PointT>::Ptr supervoxel = supervoxel_clusters.at(
                         supervoxel_label);
                 // Now we need to iterate through the adjacent supervoxels and
                 // make a point cloud of them
@@ -656,7 +656,7 @@ void visualize(std::map<uint32_t, SupervoxelT::Ptr> supervoxel_clusters,
                         adjacent_itr
                         != adjacency.equal_range(supervoxel_label).second;
                         ++adjacent_itr) {
-                    SupervoxelT::Ptr neighbor_supervoxel =
+                    pcl::Supervoxel<PointT>::Ptr neighbor_supervoxel =
                             supervoxel_clusters.at(adjacent_itr->second);
                     adjacent_supervoxel_centers.push_back(
                             neighbor_supervoxel->centroid_);

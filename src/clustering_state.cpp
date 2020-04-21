@@ -45,11 +45,8 @@
  * @param s a map containing the regions of the segmentations, each identified 
  *          by an unique label
  * @param w a multimap containing the edge weights of the graph
- * @param f a map containing friction estimates and their confidences for 
- *          each region of the segmentation, identified by an unique label
  */
-ClusteringState::ClusteringState(ClusteringT s, WeightMapT w, FrictionMapT f) {
+ClusteringState::ClusteringState(ClusteringT s, WeightMapT w) {
     set_segments(s);
     set_weight_map(w);
-    set_friction_map(f);
 }

@@ -44,26 +44,32 @@
 #include <pcl/point_types.h>
 #include <pcl/segmentation/supervoxel_clustering.h>
 
-typedef pcl::PointXYZRGBA PointT;
-typedef std::multimap<float, std::pair<uint32_t, uint32_t> > WeightMapT;
-typedef std::pair<float, std::pair<uint32_t, uint32_t> > WeightedPairT;
-typedef std::pair<float, float> FrictionEstimateT;
-typedef std::map<uint32_t, FrictionEstimateT> FrictionMapT;
-
-
 /**
- * Data structure representing a state of the clustering process. It holds 
- * information about the graph nodes and edge weights.
- *  
- * Each node represents a region of the segmentation and has a label assigned.
- * 
- * Edge weights are represented as a map where the cell addressed by two labels 
- * contains the weight of the edge connecting the nodes identified by those 
- * labels. This map is sorted from the smallest weight to the biggest.
+ * Data structure representing a supervoxel or segmentation region. It extends
+ * the standard pcl::Supervoxel by adding friction and variances for all the 
+ * region properties (i.e., friction, color, position, and normal)
  */
 template <typename PointT>
 class Supervoxel : public pcl::Supervoxel<PointT> {
+  private:
+    pcl::Normal compute_normal_variance();
+    pcl::PointXYZRGBA compute_centroid_variance();
+
+  public: 
+    Supervoxel() : pcl::Supervoxel<PointT>() {}
+    Supervoxel(const pcl::Supervoxel<PointT>& s) : pcl::Supervoxel<PointT>(s) {} //TODO: include computation of variances
     
+    typedef boost::shared_ptr<Supervoxel<PointT> > Ptr;
+    typedef boost::shared_ptr<const Supervoxel<PointT> > ConstPtr;
+
+    /** \brief The friction calculated for the voxels contained in the supervoxel */
+    float friction_;
+    /** \brief The friction variance calculated for the voxels contained in the supervoxel */
+    float friction_variance_;
+    /** \brief The normal variance calculated for the voxels contained in the supervoxel */
+    pcl::Normal normal_variance_;
+    /** \brief The centroid variance of the supervoxel - both in position and color */
+    pcl::PointXYZRGBA centroid_variance_;
 };
 
 #endif /* SUPERVOXEL_H_ */

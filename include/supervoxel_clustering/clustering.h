@@ -63,11 +63,13 @@ typedef pcl::PointXYZRGBL PointLCT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 typedef pcl::PointCloud<PointLT> PointLCloudT;
 typedef Supervoxel<PointT> SupervoxelT;
+typedef std::map<uint32_t, pcl::Supervoxel<PointT>::Ptr> PCLClusteringT;
 typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
 typedef std::multimap<uint32_t, uint32_t> AdjacencyMapT;
 typedef std::multiset<float> DeltasDistribT;
 typedef std::pair<pcl::PointXYZ, std::array<double,3>> HapticPointT;
 typedef std::map<pcl::PointXYZ, std::array<double,3>, comp_points> HapticTrackT;
+typedef std::pair<float, float> FrictionEstimateT;
 
 enum ColorDistance {
     LAB_CIEDE00, RGB_EUCL
@@ -105,22 +107,19 @@ class Clustering {
     std::map<short, float> cdf_c, cdf_g, cdf_h;
     bool set_initial_state, init_initial_weights;
     ClusteringState initial_state, state;
-    HapticTrackT haptic_track;
 
     bool is_convex(Normal norm1, PointT centroid1, Normal norm2,
             PointT centroid2) const;
     float normals_diff(Normal norm1, PointT centroid1, Normal norm2,
             PointT centroid2) const;
-    float average_friction(SupervoxelT::Ptr supvox) const;
-    std::pair<float, float> delta_c_g(SupervoxelT::Ptr supvox1,
+    FrictionEstimateT average_friction(SupervoxelT::Ptr supvox, HapticTrackT track) const;
+    std::array<float,3> delta_c_g_h(SupervoxelT::Ptr supvox1,
             SupervoxelT::Ptr supvox2) const;
-    float delta_h(FrictionEstimateT f1, FrictionEstimateT f2) const;
-    float delta(SupervoxelT::Ptr supvox1, SupervoxelT::Ptr supvox2,
-            FrictionEstimateT f1, FrictionEstimateT f2) const;
+    float delta(SupervoxelT::Ptr supvox1, SupervoxelT::Ptr supvox2) const;
     AdjacencyMapT weight2adj(WeightMapT w_map) const;
-    WeightMapT adj2weight(ClusteringT segm, AdjacencyMapT adj_map) const;
-    FrictionMapT estimate_frictions(ClusteringT) const;
-    void estimate_missing_frictions(FrictionMapT *) const;
+    WeightMapT adj2weight(AdjacencyMapT adj_map) const;
+    ClusteringT estimate_frictions_and_variance(PCLClusteringT, HapticTrackT) const;
+    void estimate_missing_frictions(ClusteringT *) const;
     void init_weights();
     void init_merging_parameters(DeltasDistribT deltas_c,
             DeltasDistribT deltas_g, DeltasDistribT deltas_h);
@@ -170,8 +169,9 @@ public:
     void set_merging(MergingCriterion m);
     void set_lambda(float l);
     void set_bins_num(short b);
+    void set_initialstate(PCLClusteringT segm, AdjacencyMapT adj);
+    void set_initialstate(PCLClusteringT segm, AdjacencyMapT adj, HapticTrackT track);
     void set_initialstate(ClusteringT segm, AdjacencyMapT adj);
-    void set_initialstate(ClusteringT segm, AdjacencyMapT adj, HapticTrackT track);
 
     /**
      * Get the type of color distance used
