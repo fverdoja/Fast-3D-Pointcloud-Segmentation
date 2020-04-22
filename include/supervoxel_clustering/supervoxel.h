@@ -57,7 +57,11 @@ class Supervoxel : public pcl::Supervoxel<PointT> {
 
   public: 
     Supervoxel() : pcl::Supervoxel<PointT>() {}
-    Supervoxel(const pcl::Supervoxel<PointT>& s) : pcl::Supervoxel<PointT>(s) {} //TODO: include computation of variances
+    Supervoxel(const pcl::Supervoxel<PointT>& s) : 
+      pcl::Supervoxel<PointT>(s),
+      normal_variance_(compute_normal_variance()),
+      centroid_variance_(compute_centroid_variance())
+      {}
     
     typedef boost::shared_ptr<Supervoxel<PointT> > Ptr;
     typedef boost::shared_ptr<const Supervoxel<PointT> > ConstPtr;

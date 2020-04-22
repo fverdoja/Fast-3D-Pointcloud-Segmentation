@@ -48,6 +48,7 @@ pcl::Normal Supervoxel<PointT>::compute_normal_variance() {
   var_n.curvature = 1;
 
   return var_n;
+  // TODO: replace with real variance computation
 }
 
 template <typename PointT>
@@ -62,4 +63,7 @@ pcl::PointXYZRGBA Supervoxel<PointT>::compute_centroid_variance() {
   var_c.a = 1;
 
   return var_c;
+  // TODO: replace with real variance computation
 }
+
+template class Supervoxel<pcl::PointXYZRGBA>;
