@@ -56,6 +56,7 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a C++ library
+add_library(gmm src/gmm.cpp)
 add_library(clustering src/clustering.cpp)
 add_library(color_utilities src/color_utilities.cpp)
 add_library(supervoxel src/supervoxel.cpp)
@@ -84,6 +85,7 @@ add_executable(supervoxel_clustering src/supervoxel_clustering.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(supervoxel_clustering
+  gmm
   clustering
   color_utilities
   supervoxel
