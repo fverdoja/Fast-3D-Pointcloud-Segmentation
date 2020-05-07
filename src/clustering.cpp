@@ -103,7 +103,9 @@ float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
  * @return the average friction coefficient
  */
 FrictionEstimateT Clustering::average_friction(SupervoxelT::Ptr supvox, HapticTrackT track) const {
-    float count, mean_f, last_mean_f, var_f, s_f = 0;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr subtrack(new pcl::PointCloud<pcl::PointXYZI>());
+    float count, mean_f = 0;
+    
     if(!track.empty()) {
         PointCloudT::Ptr v = supvox->voxels_;
         for (auto const &iter : v->points) {
@@ -116,24 +118,23 @@ FrictionEstimateT Clustering::average_friction(SupervoxelT::Ptr supvox, HapticTr
                 float f = f_x/f_z;
                 count++;
 
-                last_mean_f = mean_f;
                 mean_f = mean_f + (1 / count) * (f - mean_f);
-                s_f = s_f + (f - last_mean_f) * (f - mean_f);
+                pcl::PointXYZI p(f);
+                p.x = iter.x;
+                p.y = iter.y;
+                p.z = iter.z;
+                subtrack->push_back(p);
             }
         }
         if(count != 0) {
-            var_f = s_f / count;
-
             if (mean_f != 0) std::cout << mean_f << std::endl; //TODO: remove after debug
             
             if (mean_f < 0)
                 mean_f = 0;
-            if (var_f < 0)
-                var_f = 0;
         }
     }
 
-    FrictionEstimateT ret(mean_f, var_f);
+    FrictionEstimateT ret(subtrack, mean_f);
     return ret;
 }
 
@@ -255,15 +256,16 @@ WeightMapT Clustering::adj2weight(AdjacencyMapT adj_map) const {
     return w_map;
 }
 
-ClusteringT Clustering::estimate_frictions_and_variance(PCLClusteringT segm, 
+ClusteringT Clustering::estimate_frictions_and_statistics(PCLClusteringT segm, 
         HapticTrackT track) const {
     ClusteringT new_segm;
     for(auto iter : segm) {
         uint32_t label = iter.first;
         SupervoxelT::Ptr s(new SupervoxelT(*iter.second));
         FrictionEstimateT f = average_friction(s, track);
-        s->friction_ = f.first;
-        s->friction_variance_ = f.second;
+        s->frictions_ = f.first;
+        s->friction_ = f.second;
+        s->compute_statistics();
         std::pair<uint32_t, SupervoxelT::Ptr> elem(label, s);
         new_segm.insert(elem);
     }
@@ -275,22 +277,19 @@ void Clustering::estimate_missing_frictions(ClusteringT *segmentation) const {
     //TODO: proper computation
     //placeholder: copy the average friction from the regions where it was
     //             computed to all other regions.
-    float count, avg_mean_f, avg_var_f = 0;
+    float count, avg_mean_f = 0;
 
     for(auto iter : *segmentation) {
         float f = iter.second->friction_;
-        float v_f = iter.second->friction_variance_;
         if(f != 0) {
             count++;
             avg_mean_f = avg_mean_f + (1 / count) * (f - avg_mean_f);
-            avg_var_f = avg_var_f + (1 / count) * (f - avg_var_f);
         }
     }
 
     for(auto iter : *segmentation) {
         if(iter.second->friction_ == 0) {
             iter.second->friction_ = avg_mean_f;
-            iter.second->friction_variance_ = avg_var_f;
         }
     }
 }
@@ -549,6 +548,17 @@ void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
     sup_new->normal_.normal_z = new_norm[2];
     sup_new->normal_.curvature = new_curv;
 
+    *(sup_new->frictions_) = *(sup1->frictions_) + *(sup2->frictions_);
+    if (sup_new->frictions_->size() != 0) {
+        sup_new->friction_ = (sup1->frictions_->size() * sup1->friction_ +
+                             sup2->frictions_->size() * sup2->friction_) /
+                             sup_new->frictions_->size();
+    } else {
+        sup_new->friction_ = 0;
+    }
+    
+    //sup_new->compute_statistics(); // TODO: uncomment after covariance calculation is fixed
+
     state.segments.erase(supvox_ids.first);
     state.segments.erase(supvox_ids.second);
     state.segments.insert(
@@ -733,7 +743,7 @@ void Clustering::set_bins_num(short b) {
  */
 void Clustering::set_initialstate(PCLClusteringT segm, AdjacencyMapT adj) {
     HapticTrackT track;
-    set_initialstate(estimate_frictions_and_variance(segm, track), adj);
+    set_initialstate(estimate_frictions_and_statistics(segm, track), adj);
 }
 
 /**
@@ -744,7 +754,7 @@ void Clustering::set_initialstate(PCLClusteringT segm, AdjacencyMapT adj) {
  * @param track the haptic track performed by the robot
  */
 void Clustering::set_initialstate(PCLClusteringT segm, AdjacencyMapT adj, HapticTrackT track) {
-    set_initialstate(estimate_frictions_and_variance(segm, track), adj);
+    set_initialstate(estimate_frictions_and_statistics(segm, track), adj);
 }
 
 /**

@@ -69,7 +69,7 @@ typedef std::multimap<uint32_t, uint32_t> AdjacencyMapT;
 typedef std::multiset<float> DeltasDistribT;
 typedef std::pair<pcl::PointXYZ, std::array<double,3>> HapticPointT;
 typedef std::map<pcl::PointXYZ, std::array<double,3>, comp_points> HapticTrackT;
-typedef std::pair<float, float> FrictionEstimateT;
+typedef std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, float> FrictionEstimateT;
 
 enum ColorDistance {
     LAB_CIEDE00, RGB_EUCL
@@ -118,7 +118,7 @@ class Clustering {
     float delta(SupervoxelT::Ptr supvox1, SupervoxelT::Ptr supvox2) const;
     AdjacencyMapT weight2adj(WeightMapT w_map) const;
     WeightMapT adj2weight(AdjacencyMapT adj_map) const;
-    ClusteringT estimate_frictions_and_variance(PCLClusteringT, HapticTrackT) const;
+    ClusteringT estimate_frictions_and_statistics(PCLClusteringT, HapticTrackT) const;
     void estimate_missing_frictions(ClusteringT *) const;
     void init_weights();
     void init_merging_parameters(DeltasDistribT deltas_c,

@@ -38,32 +38,3 @@
  */
 
 #include "supervoxel_clustering/supervoxel.h"
-
-template <typename PointT> 
-pcl::Normal Supervoxel<PointT>::compute_normal_variance() {
-  pcl::Normal var_n;
-  var_n.normal_x = 1;
-  var_n.normal_y = 1;
-  var_n.normal_z = 1;
-  var_n.curvature = 1;
-
-  return var_n;
-  // TODO: replace with real variance computation
-}
-
-template <typename PointT>
-pcl::PointXYZRGBA Supervoxel<PointT>::compute_centroid_variance() {
-  pcl::PointXYZRGBA var_c;
-  var_c.x = 1;
-  var_c.y = 1;
-  var_c.z = 1;
-  var_c.r = 1;
-  var_c.g = 1;
-  var_c.b = 1;
-  var_c.a = 1;
-
-  return var_c;
-  // TODO: replace with real variance computation
-}
-
-template class Supervoxel<pcl::PointXYZRGBA>;
