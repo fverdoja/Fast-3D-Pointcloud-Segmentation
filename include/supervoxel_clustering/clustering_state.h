@@ -46,8 +46,7 @@
 #include "supervoxel.h"
 
 typedef pcl::PointXYZRGBA PointT;
-typedef Supervoxel<PointT> SupervoxelT;
-typedef std::map<uint32_t, SupervoxelT::Ptr> ClusteringT;
+typedef std::map<uint32_t, Supervoxel::Ptr> ClusteringT;
 typedef std::multimap<float, std::pair<uint32_t, uint32_t> > WeightMapT;
 typedef std::pair<float, std::pair<uint32_t, uint32_t> > WeightedPairT;
 

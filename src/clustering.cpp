@@ -98,13 +98,14 @@ float Clustering::normals_diff(Normal norm1, PointT centroid1, Normal norm2,
 /**
  * Computes the average friction coefficient for a regions
  * 
- * @param supvox    the region
+ * @param supvox the region
  * 
  * @return the average friction coefficient
  */
-FrictionEstimateT Clustering::average_friction(SupervoxelT::Ptr supvox, HapticTrackT track) const {
+FrictionEstimateT Clustering::average_friction(Supervoxel::Ptr supvox, HapticTrackT track) const {
     pcl::PointCloud<pcl::PointXYZI>::Ptr subtrack(new pcl::PointCloud<pcl::PointXYZI>());
-    float count, mean_f = 0;
+    float count, mean_f;
+    count = mean_f = 0;
     
     if(!track.empty()) {
         PointCloudT::Ptr v = supvox->voxels_;
@@ -119,6 +120,7 @@ FrictionEstimateT Clustering::average_friction(SupervoxelT::Ptr supvox, HapticTr
                 count++;
 
                 mean_f = mean_f + (1 / count) * (f - mean_f);
+                std::cout << "[" << count << "] f: " << f << " - mean_f: " << mean_f << std::endl;
                 pcl::PointXYZI p(f);
                 p.x = iter.x;
                 p.y = iter.y;
@@ -147,8 +149,8 @@ FrictionEstimateT Clustering::average_friction(SupervoxelT::Ptr supvox, HapticTr
  * 
  * @return a pair containing delta_c as first value and delta_g as second value
  */
-std::array<float,3> Clustering::delta_c_g_h(SupervoxelT::Ptr supvox1,
-        SupervoxelT::Ptr supvox2) const {
+std::array<float,3> Clustering::delta_c_g_h(Supervoxel::Ptr supvox1,
+        Supervoxel::Ptr supvox2) const {
     float delta_c = 0;
     float * rgb1 = ColorUtilities::mean_color(supvox1);
     float * rgb2 = ColorUtilities::mean_color(supvox2);
@@ -200,8 +202,8 @@ std::array<float,3> Clustering::delta_c_g_h(SupervoxelT::Ptr supvox1,
  * 
  * @return the distance value
  */
-float Clustering::delta(SupervoxelT::Ptr supvox1,
-        SupervoxelT::Ptr supvox2) const {
+float Clustering::delta(Supervoxel::Ptr supvox1,
+        Supervoxel::Ptr supvox2) const {
     std::array<float,3> deltas = delta_c_g_h(supvox1, supvox2);
     
     float delta = t_c(deltas[0]) + t_g(deltas[1]) + t_h(deltas[2]);
@@ -261,12 +263,12 @@ ClusteringT Clustering::estimate_frictions_and_statistics(PCLClusteringT segm,
     ClusteringT new_segm;
     for(auto iter : segm) {
         uint32_t label = iter.first;
-        SupervoxelT::Ptr s(new SupervoxelT(*iter.second));
+        Supervoxel::Ptr s(new Supervoxel(*iter.second));
         FrictionEstimateT f = average_friction(s, track);
         s->frictions_ = f.first;
         s->friction_ = f.second;
         s->compute_statistics();
-        std::pair<uint32_t, SupervoxelT::Ptr> elem(label, s);
+        std::pair<uint32_t, Supervoxel::Ptr> elem(label, s);
         new_segm.insert(elem);
     }
     estimate_missing_frictions(&new_segm);
@@ -277,7 +279,8 @@ void Clustering::estimate_missing_frictions(ClusteringT *segmentation) const {
     //TODO: proper computation
     //placeholder: copy the average friction from the regions where it was
     //             computed to all other regions.
-    float count, avg_mean_f = 0;
+    float count, avg_mean_f;
+    count = avg_mean_f = 0;
 
     for(auto iter : *segmentation) {
         float f = iter.second->friction_;
@@ -311,8 +314,8 @@ void Clustering::init_weights() {
         uint32_t sup2_id = it->second.second;
         std::stringstream ids;
         ids << sup1_id << "-" << sup2_id;
-        SupervoxelT::Ptr sup1 = initial_state.segments.at(sup1_id);
-        SupervoxelT::Ptr sup2 = initial_state.segments.at(sup2_id);
+        Supervoxel::Ptr sup1 = initial_state.segments.at(sup1_id);
+        Supervoxel::Ptr sup2 = initial_state.segments.at(sup2_id);
         std::array<float,3> deltas = delta_c_g_h(sup1, sup2);
         temp_deltas.insert(
                 std::pair<std::string, std::array<float,3>>(ids.str(),deltas));
@@ -526,9 +529,9 @@ void Clustering::cluster(ClusteringState start, float threshold) {
  * @param supvox_ids    a pair containing the two region labels to be merged
  */
 void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
-    SupervoxelT::Ptr sup1 = state.segments.at(supvox_ids.first);
-    SupervoxelT::Ptr sup2 = state.segments.at(supvox_ids.second);
-    SupervoxelT::Ptr sup_new = boost::make_shared<SupervoxelT>();
+    Supervoxel::Ptr sup1 = state.segments.at(supvox_ids.first);
+    Supervoxel::Ptr sup2 = state.segments.at(supvox_ids.second);
+    Supervoxel::Ptr sup_new = boost::make_shared<Supervoxel>();
 
     *(sup_new->voxels_) = *(sup1->voxels_) + *(sup2->voxels_);
     *(sup_new->normals_) = *(sup1->normals_) + *(sup2->normals_);
@@ -562,7 +565,7 @@ void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
     state.segments.erase(supvox_ids.first);
     state.segments.erase(supvox_ids.second);
     state.segments.insert(
-            std::pair<uint32_t, SupervoxelT::Ptr>(supvox_ids.first, sup_new));
+            std::pair<uint32_t, Supervoxel::Ptr>(supvox_ids.first, sup_new));
 
     WeightMapT new_map;
 

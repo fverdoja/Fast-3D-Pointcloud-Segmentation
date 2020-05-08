@@ -114,7 +114,7 @@ uint8_t * ColorUtilities::get_glasbey(uint32_t label) {
  * 
  * @return the mean color of all points as an array of RGB values
  */
-float * ColorUtilities::mean_color(SupervoxelT::Ptr s) {
+float * ColorUtilities::mean_color(Supervoxel::Ptr s) {
     pcl::PointCloud<PointT>::Ptr v = s->voxels_;
     pcl::PointCloud<PointT>::iterator v_itr, v_itr_end;
     v_itr = v->begin();

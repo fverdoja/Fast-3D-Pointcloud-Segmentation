@@ -58,7 +58,6 @@ struct Color {
 };
 
 typedef pcl::PointXYZRGBA PointT;
-typedef Supervoxel<PointT> SupervoxelT;
 
 const float RGB_RANGE = 441.672943;
 const float LAB_RANGE = 137.3607;
@@ -78,7 +77,7 @@ class ColorUtilities {
 public:
         
     static uint8_t * get_glasbey(uint32_t label);
-    static float * mean_color(SupervoxelT::Ptr s);
+    static float * mean_color(Supervoxel::Ptr s);
     static float * rgb2lab(float rgb[3]);
     static float * lab2rgb(float lab[3]);
     static float lab_ciede00(float lab1[3], float lab2[3], double kL = 1.0,
