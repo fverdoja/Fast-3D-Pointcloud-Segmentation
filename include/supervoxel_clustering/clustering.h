@@ -101,7 +101,7 @@ class Clustering {
     GeometricDistance delta_g_type;
     HapticDistance delta_h_type;
     MergingCriterion merging_type;
-    float lambda;
+    float lambda_c, lambda_g;
     short bins_num;
     std::map<short, float> cdf_c, cdf_g, cdf_h;
     bool set_initial_state, init_initial_weights;
@@ -166,7 +166,7 @@ public:
     }
 
     void set_merging(MergingCriterion m);
-    void set_lambda(float l);
+    void set_lambda(std::pair<float, float> l);
     void set_bins_num(short b);
     void set_initialstate(PCLClusteringT segm, AdjacencyMapT adj);
     void set_initialstate(PCLClusteringT segm, AdjacencyMapT adj, HapticTrackT track);
@@ -210,12 +210,12 @@ public:
     }
 
     /**
-     * Get the current value of lambda
+     * Get the current value of lambdas
      * 
-     * @return the value of lambda
+     * @return the value of lambdas
      */
-    float get_lambda() const {
-        return lambda;
+    std::pair<float, float> get_lambda() const {
+        return std::pair<float, float>(lambda_c, lambda_g);
     }
 
     /**

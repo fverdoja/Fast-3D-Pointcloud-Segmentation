@@ -414,7 +414,7 @@ int main(int argc, char ** argv) {
         if (manual_lambda_specified) {
             segmentation.set_merging(MANUAL_LAMBDA);
             if (lambda != 0)
-                segmentation.set_lambda(lambda);
+                segmentation.set_lambda(std::pair<float, float>(lambda, lambda));
         } else if (equalization_specified) {
             segmentation.set_merging(EQUALIZATION);
             if (bin_num != 0)

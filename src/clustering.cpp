@@ -120,7 +120,7 @@ FrictionEstimateT Clustering::average_friction(Supervoxel::Ptr supvox, HapticTra
                 count++;
 
                 mean_f = mean_f + (1 / count) * (f - mean_f);
-                std::cout << "[" << count << "] f: " << f << " - mean_f: " << mean_f << std::endl;
+                std::cout << "[" << count << "] f: " << f << " - mean_f: " << mean_f << std::endl; //TODO: remove after debug
                 pcl::PointXYZI p(f);
                 p.x = iter.x;
                 p.y = iter.y;
@@ -282,6 +282,7 @@ void Clustering::estimate_missing_frictions(ClusteringT *segmentation) const {
     float count, avg_mean_f;
     count = avg_mean_f = 0;
 
+    // Build the GMM
     for(auto iter : *segmentation) {
         float f = iter.second->friction_;
         if(f != 0) {
@@ -290,6 +291,7 @@ void Clustering::estimate_missing_frictions(ClusteringT *segmentation) const {
         }
     }
 
+    // Estimate through GMR
     for(auto iter : *segmentation) {
         if(iter.second->friction_ == 0) {
             iter.second->friction_ = avg_mean_f;
@@ -361,7 +363,9 @@ void Clustering::init_merging_parameters(DeltasDistribT deltas_c,
             float mean_c = deltas_mean(deltas_c);
             float mean_g = deltas_mean(deltas_g);
             float mean_h = deltas_mean(deltas_h);
-            lambda = mean_g / (mean_c + mean_g); //TODO: change to include h
+            lambda_c = (mean_g * mean_h) / 
+                      (mean_c * mean_g + mean_g * mean_h + mean_c * mean_h);
+            lambda_g = lambda_c * mean_c / mean_g;
             break;
         }
         case EQUALIZATION:
@@ -420,12 +424,12 @@ float Clustering::t_c(float delta_c) const {
     switch (merging_type) {
         case MANUAL_LAMBDA:
         {
-            ret = lambda * delta_c;
+            ret = lambda_c * delta_c;
             break;
         }
         case ADAPTIVE_LAMBDA:
         {
-            ret = lambda * delta_c;
+            ret = lambda_c * delta_c;
             break;
         }
         case EQUALIZATION:
@@ -452,12 +456,12 @@ float Clustering::t_g(float delta_g) const {
     switch (merging_type) {
         case MANUAL_LAMBDA:
         {
-            ret = (1 - lambda) * delta_g;
+            ret = lambda_g * delta_g;
             break;
         }
         case ADAPTIVE_LAMBDA:
         {
-            ret = (1 - lambda) * delta_g;
+            ret = lambda_g * delta_g;
             break;
         }
         case EQUALIZATION:
@@ -484,12 +488,12 @@ float Clustering::t_h(float delta_h) const {
     switch (merging_type) {
         case MANUAL_LAMBDA:
         {
-            ret = (1 - lambda) * delta_h;
+            ret = (1 - lambda_c - lambda_g) * delta_h;
             break;
         }
         case ADAPTIVE_LAMBDA:
         {
-            ret = (1 - lambda) * delta_h;
+            ret = (1 - lambda_c - lambda_g) * delta_h;
             break;
         }
         case EQUALIZATION:
@@ -556,11 +560,16 @@ void Clustering::merge(std::pair<uint32_t, uint32_t> supvox_ids) {
         sup_new->friction_ = (sup1->frictions_->size() * sup1->friction_ +
                              sup2->frictions_->size() * sup2->friction_) /
                              sup_new->frictions_->size();
+        //sup_new->compute_statistics(); // TODO: uncomment after covariance calculation is fixed
     } else {
-        sup_new->friction_ = 0;
+        //sup_new->compute_statistics(); // TODO: uncomment after covariance calculation is fixed
+        sup_new->friction_ = sup1->friction_ * sup2->friction_ / 2;
+        // TODO: GMR?
     }
     
-    //sup_new->compute_statistics(); // TODO: uncomment after covariance calculation is fixed
+    // the two regions were both touched    FINE
+    // only one is touched                  FINE?
+    // neither was touched                  GMR?
 
     state.segments.erase(supvox_ids.first);
     state.segments.erase(supvox_ids.second);
@@ -703,7 +712,8 @@ Clustering::Clustering(ColorDistance c, GeometricDistance g, HapticDistance h,
  */
 void Clustering::set_merging(MergingCriterion m) {
     merging_type = m;
-    lambda = 0.5;
+    lambda_c = 1 / 3;
+    lambda_g = 1 / 3;
     bins_num = 500;
     init_initial_weights = false;
 }
@@ -713,13 +723,15 @@ void Clustering::set_merging(MergingCriterion m) {
  * 
  * @param l the value of lambda
  */
-void Clustering::set_lambda(float l) {
+void Clustering::set_lambda(std::pair<float, float> l) {
     if (merging_type != MANUAL_LAMBDA)
         throw std::logic_error(
-            "Lambda can be set only if the merging criterion is set to MANUAL_LAMBDA");
-    if (l < 0 || l > 1)
-        throw std::invalid_argument("Argument outside range [0, 1]");
-    lambda = l;
+            "Lambdas can be set only if the merging criterion is set to MANUAL_LAMBDA");
+    if (l.first < 0 || l.first > 1 || l.second < 0 || l.second > 1 || 
+       l.first + l.second > 1)
+        throw std::invalid_argument("Argument lambda outside range [0, 1]");
+    lambda_c = l.first;
+    lambda_g = l.second;
     init_initial_weights = false;
 }
 
