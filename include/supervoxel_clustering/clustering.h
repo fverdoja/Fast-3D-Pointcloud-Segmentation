@@ -42,11 +42,13 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-
+#include "gmm_gmr.h"
 #include "supervoxel.h"
 #include "color_utilities.h"
 #include "clustering_state.h"
 #include "testing.h"
+#include "eigenmvn.h"
+
 
 struct comp_points {
   bool operator() (const pcl::PointXYZ a, const pcl::PointXYZ b) const {
@@ -106,7 +108,6 @@ class Clustering {
     std::map<short, float> cdf_c, cdf_g, cdf_h;
     bool set_initial_state, init_initial_weights;
     ClusteringState initial_state, state;
-
     bool is_convex(Normal norm1, PointT centroid1, Normal norm2,
             PointT centroid2) const;
     float normals_diff(Normal norm1, PointT centroid1, Normal norm2,
@@ -137,7 +138,6 @@ public:
 
     Clustering();
     Clustering(ColorDistance c, GeometricDistance g, HapticDistance h, MergingCriterion m);
-
     /**
      * Set the type of color distance to be used
      * 

@@ -39,6 +39,11 @@
 
 #include "supervoxel_clustering/clustering.h"
 
+
+std::vector<Eigen::VectorXf> gmm_means_global;
+std::vector<Eigen::MatrixXf> gmm_covariances_global;
+std::vector<float> gmm_weights_global;
+
 /**
  * Test if two regions form a convex angle between them
  * 
@@ -116,7 +121,7 @@ FrictionEstimateT Clustering::average_friction(Supervoxel::Ptr supvox, HapticTra
             if (h_it != track.end()) {
                 float f_x = h_it->second[0];
                 float f_z = h_it->second[1];
-                float f = f_x/f_z;
+                float f = abs(f_x/f_z);
                 count++;
 
                 mean_f = mean_f + (1 / count) * (f - mean_f);
@@ -281,22 +286,54 @@ void Clustering::estimate_missing_frictions(ClusteringT *segmentation) const {
     //             computed to all other regions.
     float count, avg_mean_f;
     count = avg_mean_f = 0;
-
     // Build the GMM
+    GMM_GMR gmmnode;
+    int n_rows = 100; //0.03 seed ok
+    std::vector<Eigen::MatrixXf> gmm_all_sample;
     for(auto iter : *segmentation) {
         float f = iter.second->friction_;
         if(f != 0) {
-            count++;
-            avg_mean_f = avg_mean_f + (1 / count) * (f - avg_mean_f);
+            Eigen::EigenMultivariateNormal<float> normX_solver(iter.second->mean_,iter.second->covariance_);
+            Eigen::MatrixXf gmm_indata(n_rows,4);
+            gmm_indata << normX_solver.samples(n_rows).transpose();
+            gmm_all_sample.push_back(gmm_indata);
+            count++; 
         }
     }
+    Eigen::MatrixXf gmm_input;
+    gmm_input = gmmnode.VStack(gmm_all_sample);
+    std::cout << "Number of touched regions: " << count << std::endl;
+    std::cout << "Size: " << gmm_input.innerSize()  << gmm_input.outerSize() << std::endl;
+    auto gmm_variables = gmmnode.fit_gmm(gmm_input);
+    auto gmm_means = std::get<0>(gmm_variables);
+    auto gmm_covariances = std::get<1>(gmm_variables);
+    auto gmm_weights = std::get<2>(gmm_variables);
 
     // Estimate through GMR
     for(auto iter : *segmentation) {
         if(iter.second->friction_ == 0) {
-            iter.second->friction_ = avg_mean_f;
+            Eigen::MatrixXf x(1,3);
+            x = iter.second->mean_.head(3).transpose();
+            auto predicted_values = gmmnode.gmr(gmm_weights,gmm_means,gmm_covariances,x,3,1);
+            iter.second->friction_ = std::get<0>(predicted_values)[0];
+            auto predicted_covariances = std::get<1>(predicted_values)(0,0);
+            // if (iter.second->friction_ < 0){
+            //     iter.second->friction_ = abs(iter.second->friction_);
+            // }
+            if (iter.second->friction_ >= 1){
+                iter.second->friction_ = iter.second->friction_ - predicted_covariances;
+            }
+            std::cout << "Mean input: " << x << " -- Fric: " << iter.second->friction_ << " -- Cov: " << predicted_covariances << std::endl;
         }
     }
+    for (auto i: gmm_weights)
+        std::cout << "weights: "<< i << std::endl;
+    for (auto i: gmm_means)
+        std::cout << "means: "<< i << std::endl;
+
+    for (auto i: gmm_covariances)
+        std::cout << "covariances: "<< i << std::endl;
+
 }
 
 /**

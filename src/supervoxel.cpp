@@ -96,6 +96,9 @@ void Supervoxel::compute_statistics() {
           rf = rf + (r * f) / (n_frictions - 1);
           gf = gf + (g * f) / (n_frictions - 1);
           bf = bf + (b * f) / (n_frictions - 1);
+          // rf = 1;
+          // gf = 1;
+          // bf = 1;
           ff = ff + (f * f) / (n_frictions - 1);
         }
       } else {
@@ -113,6 +116,7 @@ void Supervoxel::compute_statistics() {
 
   if(n_frictions > 0) {
     std::cout << "*********" << n_voxels << " - " << n_frictions << std::endl;
-    std::cout << covariance_ << std::endl << std::endl;
+    std::cout << "mean: " << mean_.transpose() << std::endl << std::endl;
+    std::cout << "cov: " << covariance_ << std::endl << std::endl;
   }
 }

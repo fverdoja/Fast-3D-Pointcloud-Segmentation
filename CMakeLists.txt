@@ -21,7 +21,6 @@ endif(USE_CATKIN)
 ## System dependencies are found with CMake's conventions
 find_package(PCL 1.8 REQUIRED)
 find_package(OpenCV REQUIRED)
-
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -34,7 +33,7 @@ find_package(OpenCV REQUIRED)
 if(USE_CATKIN)
   catkin_package(
     INCLUDE_DIRS include
-    LIBRARIES clustering color_utilities supervoxel clustering_state testing
+    LIBRARIES clustering color_utilities supervoxel clustering_state testing gmm_gmr gmm 
     CATKIN_DEPENDS roscpp
     DEPENDS PCL OpenCV
   )
@@ -56,12 +55,14 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 ## Declare a C++ library
-add_library(gmm src/gmm.cpp)
 add_library(clustering src/clustering.cpp)
 add_library(color_utilities src/color_utilities.cpp)
 add_library(supervoxel src/supervoxel.cpp)
+add_library(gmm_gmr src/gmm_gmr.cpp)
+add_library(gmm src/gmm.cpp)
 add_library(clustering_state src/clustering_state.cpp)
 add_library(testing src/testing.cpp)
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -83,16 +84,20 @@ add_executable(supervoxel_clustering src/supervoxel_clustering.cpp)
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(gmm_gmr ${PROJECT_NAME}_generate_messages_cpp)
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(supervoxel_clustering
-  gmm
   clustering
   color_utilities
   supervoxel
+  gmm_gmr
+  gmm
   clustering_state
   testing
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
   ${OpenCV_LIBS}
 )
+
 
