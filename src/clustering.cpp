@@ -276,11 +276,7 @@ ClusteringT Clustering::estimate_frictions_and_statistics(PCLClusteringT segm,
 }
 
 void Clustering::estimate_missing_frictions(ClusteringT *segmentation) const {
-    //TODO: proper computation
-    //placeholder: copy the average friction from the regions where it was
-    //             computed to all other regions.
-    float count, avg_mean_f;
-    count = avg_mean_f = 0;
+    float count = 0;
     // Build the GMM
     GMM_GMR gmmnode;
     int n_rows = 100; //0.03 seed ok
