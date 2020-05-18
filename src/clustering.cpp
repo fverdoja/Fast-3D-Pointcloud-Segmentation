@@ -39,11 +39,6 @@
 
 #include "supervoxel_clustering/clustering.h"
 
-
-std::vector<Eigen::VectorXf> gmm_means_global;
-std::vector<Eigen::MatrixXf> gmm_covariances_global;
-std::vector<float> gmm_weights_global;
-
 /**
  * Test if two regions form a convex angle between them
  * 

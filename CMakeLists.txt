@@ -84,8 +84,6 @@ add_executable(supervoxel_clustering src/supervoxel_clustering.cpp)
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(gmm_gmr ${PROJECT_NAME}_generate_messages_cpp)
-
 ## Specify libraries to link a library or executable target against
 target_link_libraries(supervoxel_clustering
   clustering
