@@ -76,6 +76,8 @@ class Supervoxel : public pcl::Supervoxel<PointT> {
 
     /** \brief The friction calculated for the voxels contained in the supervoxel */
     float friction_;
+    /** \brief The friction variance calculated for the voxels contained in the supervoxel */
+    float friction_variance_;
     /** \brief A Pointcloud of the voxels along the haptic track in the supervoxel */
     pcl::PointCloud<pcl::PointXYZI>::Ptr frictions_;
     /** \brief The mean vector {r, g, b, friction} */

@@ -868,6 +868,36 @@ PointLCloudT::Ptr Clustering::get_labeled_cloud() const {
 }
 
 /**
+ * Get the pointcloud of the regions corresponding to the current state
+ * 
+ * @return a labelled pointcloud
+ */
+PointCloudT::Ptr Clustering::get_friction_cloud() const {
+    PointCloudT::Ptr friction_cloud(new PointCloudT);
+
+    ClusteringT::const_iterator it = state.segments.begin();
+    ClusteringT::const_iterator it_end = state.segments.end();
+
+    for (; it != it_end; ++it) {
+        PointCloudT cloud = *(it->second->voxels_);
+        PointCloudT::iterator it_cloud = cloud.begin();
+        PointCloudT::iterator it_cloud_end = cloud.end();
+        for (; it_cloud != it_cloud_end; ++it_cloud) {
+            PointT p;
+            p.x = it_cloud->x;
+            p.y = it_cloud->y;
+            p.z = it_cloud->z;
+            p.r = std::min<float>(0, std::max<float>(it->second->friction_, 1)) * 255;
+            p.g = std::min<float>(0, std::max<float>(it->second->friction_, 1)) * 255;
+            p.b = 0;
+            friction_cloud->push_back(p);
+        }
+    }
+
+    return friction_cloud;
+}
+
+/**
  * Perform the clustering
  * 
  * @param threshold the stopping threshold for the clustering process

@@ -114,6 +114,8 @@ void Supervoxel::compute_statistics() {
                  rb, gb, bb, bf,
                  rf, gf, bf, ff;
 
+  friction_variance_ = ff;
+
   if(n_frictions > 0) {
     std::cout << "*********" << n_voxels << " - " << n_frictions << std::endl;
     std::cout << "mean: " << mean_.transpose() << std::endl << std::endl;
